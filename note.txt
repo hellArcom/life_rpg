@@ -1,0 +1,33 @@
+# Life RPG - Todo
+
+## ✅ Implémenté
+- Anti-triche : quêtes < 3min non validables
+- Animation célébration réussite quête
+- Pénalité quêtes quotidiennes non faites (minuit)
+- Système économique (pièces, boutique)
+- Notifications push proactives
+- Badges et trophées FOMO (durée limitée)
+- Weekly summary (résumé visuel semaine)
+- Daily reward / Check-in bonus (7 jours croissants)
+- Streak freeze (achat en pièces, compteur de jours)
+- Coffres / Loot boxes
+- Widget streak (home screen)
+- Sound design + haptics désactivables
+- Sélecteur de skin (déblocage progressif + boutique)
+- Multiplicateur de streak (momentum) : +0.1/jour, max x2.0
+- Palier de streak avec récompenses fixes (7/14/30/60/90/180/365j)
+- Question du soir : journal quotidien + 10 pièces (notif 21h)
+- Widget Android natif (stats temps réel + ajout quête)
+- Personnage pixel-art 12×16 (28 pièces, 8 catégories, rendu CustomPainter)
+- Correction bug avatar tenue (clé `outfit_$ot` → `ot`)
+- Sprites cheveux redessinés + ordre dessin hair avant face
+- Coffres : passage en ouverture manuelle (bouton Ouvrir + animation + écran récompense)
+- Historique du soir (consultation des entrées passées)
+- Boutique : protection achat déjà possédé (guard + badge "Possédé ✓")
+- Confirmation achat gel de série (AlertDialog)
+- remettre la catégories quotidien pour les quête quotidienne et les trouver plus facillement
+- corriger "cat" au début du nom des compétence 
+
+## non implémenter
+- corriger bug avatar
+- mettre les widget mieux

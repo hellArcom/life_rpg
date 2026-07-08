@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "856067288735",
+    "project_id": "liferpg-286d1",
+    "storage_bucket": "liferpg-286d1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856067288735:android:feadbe5f43444ec287fcaa",
+        "android_client_info": {
+          "package_name": "com.example.life_rpg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3bsvO4ewcWVKEWvl9oRMHI-59hapXuVA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856067288735:android:b685afd549d7004c87fcaa",
+        "android_client_info": {
+          "package_name": "com.exemple.life_rpg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3bsvO4ewcWVKEWvl9oRMHI-59hapXuVA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
