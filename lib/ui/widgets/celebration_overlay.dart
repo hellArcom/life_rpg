@@ -24,6 +24,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   late AnimationController _particleController;
   final _random = Random();
   final _particles = <_Particle>[];
+  Size _screenSize = Size.zero;
 
   @override
   void initState() {
@@ -53,6 +54,14 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_screenSize == Size.zero) {
+      _screenSize = MediaQuery.of(context).size;
+    }
+  }
+
+  @override
   void dispose() {
     _scaleController.dispose();
     _particleController.dispose();
@@ -71,8 +80,8 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             child: Stack(
               children: [
                 ..._particles.map((p) => Positioned(
-                  left: (p.x + sin(_particleController.value * p.speed * 10 + p.angle) * 0.1) * MediaQuery.of(context).size.width,
-                  top: (p.y + cos(_particleController.value * p.speed * 10 + p.angle) * 0.1) * MediaQuery.of(context).size.height,
+                  left: (p.x + sin(_particleController.value * p.speed * 10 + p.angle) * 0.1) * _screenSize.width,
+                  top: (p.y + cos(_particleController.value * p.speed * 10 + p.angle) * 0.1) * _screenSize.height,
                   child: Container(
                     width: p.size * (1 + sin(_particleController.value * 3 + p.angle) * 0.3),
                     height: p.size * (1 + sin(_particleController.value * 3 + p.angle) * 0.3),

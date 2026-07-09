@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -11,11 +12,14 @@ class OfflineManager {
   }
 
   static Future<void> saveData(String key, dynamic value) async {
-    final box = Hive.box('game_data');
-    // Convertir en JSON string pour garantir une structure robuste
-    final jsonString = jsonEncode(value);
-    await box.put(key, jsonString);
-    await box.flush();
+    try {
+      final box = Hive.box('game_data');
+      final jsonString = jsonEncode(value);
+      await box.put(key, jsonString);
+      await box.flush();
+    } catch (e) {
+      debugPrint("Erreur sauvegarde Hive ($key): $e");
+    }
   }
 
   static Future<void> flush() async {
@@ -36,7 +40,7 @@ class OfflineManager {
         return null;
       }
     }
-    return data; // Retourne directement si c'est déjà une Map (compatibilité)
+    return data; 
   }
 
   static Future<bool> isConnected() async {

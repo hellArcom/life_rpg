@@ -10,8 +10,7 @@ import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import 'settings_screen.dart';
 
-// On n'importe dart:io que si on n'est pas sur le web pour éviter les problèmes de compilation
-// Cependant, en Flutter, on peut l'importer mais il faut éviter d'utiliser ses types dans les signatures
+
 import 'dart:io' as io;
 
 class OthersScreen extends ConsumerStatefulWidget {

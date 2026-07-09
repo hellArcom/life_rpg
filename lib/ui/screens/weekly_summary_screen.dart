@@ -46,7 +46,7 @@ class WeeklySummaryScreen extends ConsumerWidget {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: xpLog.reduce((a, b) => a > b ? a : b).toDouble().clamp(100, double.infinity),
+                  maxY: xpLog.isEmpty ? 100 : xpLog.reduce((a, b) => a > b ? a : b).toDouble().clamp(100, double.infinity),
                   barGroups: xpLog.asMap().entries.map((e) => BarChartGroupData(
                     x: e.key,
                     barRods: [BarChartRodData(

@@ -7,6 +7,7 @@ import '../services/audio_service.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
 import '../core/offline_manager.dart';
+import '../core/utils.dart';
 
 class GameState {
   final UserProfile user;
@@ -24,6 +25,7 @@ class GameState {
   final List<LootBox> lootBoxes;
   final int lootBoxProgress;
   final List<int> weeklyXpLog;
+  final DateTime? lastWeeklyLogWeekStart;
   final DateTime? lastPenaltyDate;
   final bool celebrationPending;
   final List<EveningEntry> eveningLog;
@@ -44,6 +46,7 @@ class GameState {
     this.lootBoxes = const [],
     this.lootBoxProgress = 0,
     this.weeklyXpLog = const [],
+    this.lastWeeklyLogWeekStart,
     this.lastPenaltyDate,
     this.celebrationPending = false,
     this.eveningLog = const [],
@@ -65,6 +68,7 @@ class GameState {
     List<LootBox>? lootBoxes,
     int? lootBoxProgress,
     List<int>? weeklyXpLog,
+    DateTime? lastWeeklyLogWeekStart,
     DateTime? lastPenaltyDate,
     bool? celebrationPending,
     List<EveningEntry>? eveningLog,
@@ -85,6 +89,7 @@ class GameState {
       lootBoxes: lootBoxes ?? this.lootBoxes,
       lootBoxProgress: lootBoxProgress ?? this.lootBoxProgress,
       weeklyXpLog: weeklyXpLog ?? this.weeklyXpLog,
+      lastWeeklyLogWeekStart: lastWeeklyLogWeekStart ?? this.lastWeeklyLogWeekStart,
       lastPenaltyDate: lastPenaltyDate ?? this.lastPenaltyDate,
       celebrationPending: celebrationPending ?? this.celebrationPending,
       eveningLog: eveningLog ?? this.eveningLog,
@@ -103,9 +108,14 @@ class GameState {
     'lootBoxes': lootBoxes.map((l) => l.toJson()).toList(),
     'lootBoxProgress': lootBoxProgress,
     'weeklyXpLog': weeklyXpLog,
+    'lastWeeklyLogWeekStart': lastWeeklyLogWeekStart?.toIso8601String(),
     'lastPenaltyDate': lastPenaltyDate?.toIso8601String(),
     'celebrationPending': celebrationPending,
     'eveningLog': eveningLog.map((e) => e.toJson()).toList(),
+    'currentGuild': currentGuild?.toJson(),
+    'availableGuilds': availableGuilds.map((g) => g.toJson()).toList(),
+    'guildMessages': guildMessages.map((m) => m.toJson()).toList(),
+    'leaderboard': leaderboard.map((l) => l.toJson()).toList(),
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) {
@@ -127,12 +137,23 @@ class GameState {
       availableBadges: badgesJson?.map((b) => GameBadge.fromJson(b as Map<String, dynamic>)).toList() ?? [],
       shopItems: (json['shopItems'] as List<dynamic>?)?.map((s) => ShopItem.fromJson(s)).toList() ?? [],
       lootBoxes: (json['lootBoxes'] as List<dynamic>?)?.map((l) => LootBox.fromJson(l)).toList() ?? [],
-      lootBoxProgress: json['lootBoxProgress'] ?? 0,
-      weeklyXpLog: List<int>.from(json['weeklyXpLog'] ?? List.filled(7, 0)),
+      lootBoxProgress: max(0, json['lootBoxProgress'] ?? 0),
+      weeklyXpLog: _parseWeeklyXpLog(json['weeklyXpLog']),
+      lastWeeklyLogWeekStart: json['lastWeeklyLogWeekStart'] != null ? DateTime.parse(json['lastWeeklyLogWeekStart']) : null,
       lastPenaltyDate: json['lastPenaltyDate'] != null ? DateTime.parse(json['lastPenaltyDate']) : null,
       celebrationPending: json['celebrationPending'] ?? false,
       eveningLog: (json['eveningLog'] as List<dynamic>?)?.map((e) => EveningEntry.fromJson(e)).toList() ?? [],
+      currentGuild: json['currentGuild'] != null ? Guild.fromJson(json['currentGuild']) : null,
+      availableGuilds: (json['availableGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
+      guildMessages: (json['guildMessages'] as List<dynamic>?)?.map((m) => ChatMessage.fromJson(m)).toList() ?? [],
+      leaderboard: (json['leaderboard'] as List<dynamic>?)?.map((l) => LeaderboardEntry.fromJson(l)).toList() ?? [],
     );
+  }
+
+  static List<int> _parseWeeklyXpLog(dynamic raw) {
+    final list = List<int>.from(raw ?? []);
+    if (list.length != 7) return List.filled(7, 0);
+    return list;
   }
 }
 
@@ -142,7 +163,9 @@ class GameNotifier extends Notifier<GameState> {
     try {
       final savedData = OfflineManager.getData('game_data');
       if (savedData != null && savedData is Map<String, dynamic>) {
-        return GameState.fromJson(savedData);
+        final loaded = GameState.fromJson(savedData);
+        Future.microtask(() { try { checkBadges(); } catch (_) {} });
+        return loaded;
       }
     } catch (e, stacktrace) {
       debugPrint("Erreur critique lors du chargement des données: $e\n$stacktrace");
@@ -278,9 +301,9 @@ class GameNotifier extends Notifier<GameState> {
 
   int get coins => state.user.coins;
 
-  void addCoins(int amount) {
-    state = state.copyWith(user: state.user.copyWith(coins: state.user.coins + amount));
-    _saveAllToHive();
+  void addCoins(int amount, {bool save = true}) {
+    state = state.copyWith(user: state.user.copyWith(coins: max(0, state.user.coins + amount)));
+    if (save) _saveAllToHive();
   }
 
   bool spendCoins(int amount) {
@@ -308,7 +331,10 @@ class GameNotifier extends Notifier<GameState> {
       }
     }
 
-    if (!spendCoins(item.cost)) return false;
+    if (!spendCoins(item.cost)) {
+      NotificationService.showFeedback("Pas assez de pièces !", "Vous n'avez pas assez de pièces pour cet achat.");
+      return false;
+    }
     
     if (item.type == 'streak_freeze') {
       final count = item.id == 'freeze_3' ? 3 : 1;
@@ -341,7 +367,7 @@ class GameNotifier extends Notifier<GameState> {
     final lastReward = user.lastDailyRewardDate;
     int newDay = 1;
     
-    if (lastReward != null && _isSameDay(lastReward, now)) return;
+    if (lastReward != null && isSameDay(lastReward, now)) return;
     
     if (lastReward != null && now.difference(lastReward).inHours < 48) {
       newDay = (user.dailyRewardDay % 7) + 1;
@@ -371,45 +397,66 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
-
   // ====== PÉNALITÉ QUOTIDIENNE ======
 
   void checkDailyPenalties() {
     final now = DateTime.now();
-    if (state.lastPenaltyDate != null && _isSameDay(state.lastPenaltyDate!, now)) return;
+    if (state.lastPenaltyDate != null && isSameDay(state.lastPenaltyDate!, now)) return;
 
-    final dailyQuests = state.quests.where((q) => q.frequency == QuestFrequency.daily).toList();
+    final resetQuests = state.quests.map((q) {
+      if (q.frequency == QuestFrequency.daily &&
+          q.status == QuestStatus.completed &&
+          q.lastCompletedDate != null &&
+          !isSameDay(q.lastCompletedDate!, now)) {
+        return q.copyWith(status: QuestStatus.todo, lastCompletedDate: null);
+      }
+      return q;
+    }).toList();
+
+    final dailyQuests = resetQuests.where((q) => q.frequency == QuestFrequency.daily).toList();
     int penalty = 0;
+    int streakFreezeLeft = state.user.streakFreezeDaysLeft;
+    bool usedFreeze = false;
 
     for (final quest in dailyQuests) {
-      if (quest.lastCompletedDate == null || !_isSameDay(quest.lastCompletedDate!, now)) {
-        if (state.user.streakFreezeDaysLeft > 0) {
-          state = state.copyWith(user: state.user.copyWith(streakFreezeDaysLeft: state.user.streakFreezeDaysLeft - 1));
-          NotificationService.showFeedback("Gel de série utilisé !", "Votre série est protégée pour aujourd'hui.");
+      if (quest.lastCompletedDate == null || !isSameDay(quest.lastCompletedDate!, now)) {
+        if (streakFreezeLeft > 0) {
+          streakFreezeLeft--;
+          usedFreeze = true;
         } else {
           penalty += quest.xpRewardValue ~/ 2;
         }
       }
     }
 
+    final user = state.user;
+    int? newGlobalXp;
+    int? newCoins;
+    double? newXpMultiplier;
+
     if (penalty > 0) {
-      final newXp = max(0, state.user.globalXp - penalty);
-      final coinPenalty = (penalty ~/ 10).clamp(0, state.user.coins);
-      
-      state = state.copyWith(
-        user: state.user.copyWith(
-          globalXp: newXp,
-          level: _calculateLevel(newXp),
-          coins: state.user.coins - coinPenalty,
-          xpMultiplier: 1.0,
-        ),
-        lastPenaltyDate: now,
-      );
-      NotificationService.showFeedback("Pénalité !", "Quêtes quotidiennes non faites : -$penalty XP, -$coinPenalty pièces. Multiplicateur réinitialisé.");
-    } else {
-      state = state.copyWith(lastPenaltyDate: now);
+      newGlobalXp = max(0, user.globalXp - penalty);
+      newCoins = max(0, user.coins - (penalty ~/ 10));
+      newXpMultiplier = 1.0;
+    }
+
+    state = state.copyWith(
+      quests: resetQuests,
+      user: user.copyWith(
+        globalXp: newGlobalXp ?? user.globalXp,
+        level: newGlobalXp != null ? _calculateLevel(newGlobalXp) : user.level,
+        coins: newCoins ?? user.coins,
+        xpMultiplier: newXpMultiplier ?? user.xpMultiplier,
+        streakFreezeDaysLeft: streakFreezeLeft,
+      ),
+      lastPenaltyDate: now,
+    );
+
+    if (usedFreeze) {
+      NotificationService.showFeedback("Gel de série utilisé !", "Votre série est protégée pour aujourd'hui.");
+    }
+    if (penalty > 0) {
+      NotificationService.showFeedback("Pénalité !", "Quêtes quotidiennes non faites : -$penalty XP, -${penalty ~/ 10} pièces. Multiplicateur réinitialisé.");
     }
     _saveAllToHive();
   }
@@ -425,9 +472,14 @@ class GameNotifier extends Notifier<GameState> {
 
   // ====== COFFRES / LOOT BOXES ======
 
-  void addLootBoxProgress() {
+  void addLootBoxProgress({bool save = true}) {
     state = state.copyWith(lootBoxProgress: state.lootBoxProgress + 1);
-    _saveAllToHive();
+    if (save) _saveAllToHive();
+  }
+
+  void removeLootBoxProgress({bool save = true}) {
+    state = state.copyWith(lootBoxProgress: max(0, state.lootBoxProgress - 1));
+    if (save) _saveAllToHive();
   }
 
   String? openLootBox() {
@@ -437,17 +489,22 @@ class GameNotifier extends Notifier<GameState> {
 
     final box = eligible.first;
     final coinReward = 20 + Random().nextInt(80);
-    addCoins(coinReward);
 
     bool gotBadge = false;
+    List<String>? currentBadgeIds;
     if (Random().nextDouble() < 0.3) {
-      final currentBadgeIds = List<String>.from(state.user.badgeIds);
+      currentBadgeIds = List<String>.from(state.user.badgeIds);
       _unlockBadge(currentBadgeIds, 'loot_found', 'Chercheur de Trésor 🎲', prefix: 'Badge spécial coffre !');
-      state = state.copyWith(user: state.user.copyWith(badgeIds: currentBadgeIds));
       gotBadge = true;
     }
 
-    state = state.copyWith(lootBoxProgress: state.lootBoxProgress - box.questsRequired);
+    state = state.copyWith(
+      user: state.user.copyWith(
+        coins: max(0, state.user.coins + coinReward),
+        badgeIds: currentBadgeIds ?? state.user.badgeIds,
+      ),
+      lootBoxProgress: state.lootBoxProgress - box.questsRequired,
+    );
     _saveAllToHive();
 
     final msg = '+$coinReward pièces${gotBadge ? '\n🎲 Badge spécial débloqué !' : ''}';
@@ -612,11 +669,20 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
-  void reorderQuests(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex -= 1;
+  void reorderQuests(String questId, String? beforeQuestId) {
     final items = List<Quest>.from(state.quests);
+    final oldIndex = items.indexWhere((q) => q.id == questId);
+    if (oldIndex == -1) return;
     final item = items.removeAt(oldIndex);
-    items.insert(newIndex, item);
+
+    final newIndex = beforeQuestId != null
+        ? items.indexWhere((q) => q.id == beforeQuestId)
+        : items.length;
+    if (newIndex == -1) {
+      items.add(item);
+    } else {
+      items.insert(newIndex, item);
+    }
     state = state.copyWith(quests: items);
     _saveAllToHive();
   }
@@ -644,6 +710,10 @@ class GameNotifier extends Notifier<GameState> {
 
     for (final bet in state.bets) {
       if (bet.status == BetStatus.active && now.isAfter(bet.deadline)) {
+        if (bet.linkedQuestIds.isEmpty) {
+          updatedBets.add(bet);
+          continue;
+        }
         bool allCompleted = true;
         for (final qId in bet.linkedQuestIds) {
           final fallbackCategory = state.categories.isNotEmpty ? state.categories.first : SkillCategory(id: '0', label: 'Général');
@@ -756,7 +826,7 @@ class GameNotifier extends Notifier<GameState> {
 
     final xpAdjustment = isNowCompleted
         ? (quest.xpRewardValue * state.user.xpMultiplier).round()
-        : -quest.xpRewardValue;
+        : -(quest.xpRewardValue * state.user.xpMultiplier).round();
     final newGlobalXp = max(0, state.user.globalXp + xpAdjustment);
 
     final updatedSkills = List<Skill>.from(state.skills);
@@ -775,10 +845,14 @@ class GameNotifier extends Notifier<GameState> {
       if (state.user.soundVolume > 0 || state.user.hapticLevel > 0) {
         AudioService.playSuccess(volume: state.user.soundVolume, hapticLevel: state.user.hapticLevel);
       }
-      addCoins(quest.xpRewardValue ~/ 10 + 1);
-      addLootBoxProgress();
+      addCoins(quest.xpRewardValue ~/ 10 + 1, save: false);
+      addLootBoxProgress(save: false);
       state = state.copyWith(celebrationPending: true);
       NotificationService.showFeedback("Bravo !", "Vous avez terminé : ${quest.title}. +$xpAdjustment XP !");
+    } else {
+      final coinsReward = quest.xpRewardValue ~/ 10 + 1;
+      addCoins(-coinsReward, save: false);
+      removeLootBoxProgress(save: false);
     }
 
     state = state.copyWith(
@@ -794,6 +868,7 @@ class GameNotifier extends Notifier<GameState> {
   }
 
   void deleteQuest(String questId) {
+    NotificationService.cancelReminder(questId);
     state = state.copyWith(quests: state.quests.where((q) => q.id != questId).toList());
     _saveAllToHive();
   }
@@ -854,7 +929,16 @@ class GameNotifier extends Notifier<GameState> {
 
   void _addWeeklyXp(int amount) {
     if (amount <= 0) return;
-    final idx = DateTime.now().weekday - 1; // Monday=0 … Sunday=6
+    final now = DateTime.now();
+    final thisMonday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
+    final lastWeekStart = state.lastWeeklyLogWeekStart;
+
+    bool newWeek = lastWeekStart == null || !isSameDay(lastWeekStart, thisMonday);
+    if (newWeek) {
+      state = state.copyWith(weeklyXpLog: List.filled(7, 0), lastWeeklyLogWeekStart: thisMonday);
+    }
+
+    final idx = now.weekday - 1; // Monday=0 … Sunday=6
     var log = List<int>.from(state.weeklyXpLog);
     if (log.length != 7) log = List.filled(7, 0);
     log[idx] += amount;

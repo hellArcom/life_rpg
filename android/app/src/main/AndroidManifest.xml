@@ -42,7 +42,7 @@
                 android:resource="@xml/quest_widget_info" />
         </receiver>
 
-        <receiver android:name=".ProgressWidget" android:exported="true">
+        <receiver android:name=".ProgressWidget" android:exported="true" android:label="Progression du héros">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -51,7 +51,7 @@
                 android:resource="@xml/widget_progress_info" />
         </receiver>
 
-        <receiver android:name=".QuickAddWidget" android:exported="true">
+        <receiver android:name=".QuickAddWidget" android:exported="true" android:label="Ajout rapide de quête">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -60,7 +60,7 @@
                 android:resource="@xml/widget_quick_add_info" />
         </receiver>
 
-        <receiver android:name=".DailyQuestWidget" android:exported="true">
+        <receiver android:name=".DailyQuestWidget" android:exported="true" android:label="Quêtes quotidiennes">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -69,7 +69,7 @@
                 android:resource="@xml/widget_daily_quests_info" />
         </receiver>
 
-        <receiver android:name=".CalendarWidget" android:exported="true">
+        <receiver android:name=".CalendarWidget" android:exported="true" android:label="Calendrier et tâches">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

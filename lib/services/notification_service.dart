@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 
 class NotificationService {
   static Future<void> init() async {
-    if (kIsWeb) return; // Les notifications ne sont pas encore configurées pour le web
+    if (kIsWeb) return; // notif pas faites pour le web donc skip
 
     await AwesomeNotifications().initialize(
-      'resource://mipmap/launcher_icon', // Utilise l'icône de l'application
+      'resource://mipmap/launcher_icon', // Utiliser icon app
       [
         NotificationChannel(
           channelKey: 'quests',
@@ -50,7 +50,7 @@ class NotificationService {
     
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: id.hashCode,
+        id: id.hashCode & 0x7FFFFFFF,
         channelKey: 'quests',
         title: 'Rappel de quête',
         body: title,
@@ -64,7 +64,7 @@ class NotificationService {
     if (kIsWeb) return;
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: DateTime.now().millisecond,
+        id: DateTime.now().millisecondsSinceEpoch % 2147483647,
         channelKey: 'feedback',
         title: title,
         body: body,

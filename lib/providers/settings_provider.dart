@@ -22,13 +22,13 @@ class SettingsState {
   }
 
   Map<String, dynamic> toJson() => {
-    'themeMode': themeMode.index,
+    'themeMode': themeMode.name,
     'languageCode': locale.languageCode,
   };
 
   factory SettingsState.fromJson(Map<String, dynamic> json) {
     return SettingsState(
-      themeMode: ThemeMode.values[json['themeMode'] ?? 2], // Default to dark
+      themeMode: ThemeMode.values.byName(json['themeMode'] ?? 'dark'),
       locale: Locale(json['languageCode'] ?? 'fr'),
     );
   }
@@ -54,8 +54,10 @@ class SettingsNotifier extends Notifier<SettingsState> {
     _save();
   }
 
-  void _save() {
-    OfflineManager.saveData('settings', state.toJson());
+  Future<void> _save() async {
+    try {
+      await OfflineManager.saveData('settings', state.toJson());
+    } catch (_) {}
   }
 }
 

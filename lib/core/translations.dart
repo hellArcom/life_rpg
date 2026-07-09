@@ -147,7 +147,7 @@ final Map<String, Map<String, String>> _translationsData = {
     'globalXp': 'XP Globale',
     'quests': 'Quêtes',
     'calendar': 'Calendrier',
-    'skills': 'Skills',
+    'skills': 'Compétences',
     'bets': 'Paris',
     'others': 'Autre',
     'newQuest': 'Nouvelle Quête',

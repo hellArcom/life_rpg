@@ -2,4 +2,8 @@
 <resources>
     <string name="shortcut_add_quest_short">Ajouter Quête</string>
     <string name="shortcut_add_quest_long">Ajouter une nouvelle quête</string>
+    <string name="widget_desc_progress">Niveau, barre d\'XP, série, pièces et titre du héros</string>
+    <string name="widget_desc_quick_add">Boutons pour ajouter une quête facile, moyenne, difficile ou légendaire</string>
+    <string name="widget_desc_daily">Liste des quêtes quotidiennes avec possibilité de les valider</string>
+    <string name="widget_desc_calendar">Calendrier du mois avec les quêtes du jour</string>
 </resources>

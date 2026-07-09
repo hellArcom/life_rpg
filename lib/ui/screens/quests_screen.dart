@@ -78,21 +78,9 @@ class _QuestList extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       itemCount: quests.length,
       onReorder: (oldIndex, newIndex) {
-        final gameState = ref.read(gameProvider);
         final questId = quests[oldIndex].id;
-        final globalOldIndex = gameState.quests.indexWhere((q) => q.id == questId);
-        
-        int globalNewIndex;
-        if (newIndex < quests.length) {
-          final targetQuestId = quests[newIndex].id;
-          globalNewIndex = gameState.quests.indexWhere((q) => q.id == targetQuestId);
-        } else {
-          // Si on déplace à la fin de la liste filtrée
-          final lastQuestId = quests.last.id;
-          globalNewIndex = gameState.quests.indexWhere((q) => q.id == lastQuestId) + 1;
-        }
-
-        ref.read(gameProvider.notifier).reorderQuests(globalOldIndex, globalNewIndex);
+        final beforeQuestId = newIndex < quests.length ? quests[newIndex].id : null;
+        ref.read(gameProvider.notifier).reorderQuests(questId, beforeQuestId);
       },
       itemBuilder: (context, index) {
         final quest = quests[index];
@@ -169,7 +157,7 @@ class _QuestCard extends ConsumerWidget {
           children: [
             Text('${quest.difficulty.name.toUpperCase()} • +${quest.xpRewardValue} XP'),
             if (quest.reminderDate != null)
-              Text('${t.reminder}: ${quest.reminderDate!.day}/${quest.reminderDate!.month} ${quest.reminderDate!.hour}:${quest.reminderDate!.minute}', style: const TextStyle(color: Colors.blue, fontSize: 10)),
+              Text('${t.reminder}: ${quest.reminderDate!.day}/${quest.reminderDate!.month} ${quest.reminderDate!.hour.toString().padLeft(2, '0')}:${quest.reminderDate!.minute.toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.blue, fontSize: 10)),
           ],
         ),
         trailing: IconButton(

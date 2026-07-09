@@ -12,7 +12,7 @@ class BetsScreen extends ConsumerStatefulWidget {
 }
 
 class _BetsScreenState extends ConsumerState<BetsScreen> {
-  late Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -24,7 +24,7 @@ class _BetsScreenState extends ConsumerState<BetsScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -211,7 +211,7 @@ class _BetCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: isExpired ? 1.0 : 1.0 - (remaining.inMinutes / const Duration(days: 7).inMinutes).clamp(0, 1),
+                value: isExpired ? 1.0 : 1.0 - (remaining.inMinutes / bet.deadline.difference(bet.createdAt).inMinutes).clamp(0, 1),
                 backgroundColor: Colors.white10,
                 color: color,
               ),

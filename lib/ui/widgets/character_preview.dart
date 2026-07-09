@@ -329,8 +329,8 @@ class _P extends CustomPainter {
     final ac = parts['acc'] ?? 'acc_0';
 
     dr(ot, c1(ot), c2(ot));
-    dr(ha, c1(ha), c2(ha));
     dr('face', c1(sk), c2(sk));
+    dr(ha, c1(ha), c2(ha));
     dr(ey, c1(ey), c2(ey));
     dr(mo, c1(mo), c2(mo));
     dr(ht, c1(ht), c2(ht));

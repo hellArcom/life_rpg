@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/game_models.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
+import '../../core/utils.dart';
 import '../widgets/xp_bar.dart';
 import '../widgets/celebration_overlay.dart';
 import '../widgets/character_preview.dart';
@@ -19,6 +20,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _celebrationShown = false;
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
@@ -27,7 +30,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final unlockedBadges = gameState.availableBadges.where((GameBadge b) => user.badgeIds.contains(b.id)).toList();
     final notifier = ref.read(gameProvider.notifier);
 
-    if (gameState.celebrationPending) {
+    if (gameState.celebrationPending && !_celebrationShown) {
+      _celebrationShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           showDialog(
@@ -120,7 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: _buildActionCard(
                     context, '🎁', t.dailyReward,
-                    user.lastDailyRewardDate != null && _isSameDay(user.lastDailyRewardDate!, DateTime.now())
+                    user.lastDailyRewardDate != null && isSameDay(user.lastDailyRewardDate!, DateTime.now())
                         ? 'Jour ${user.dailyRewardDay} ✓' : '${t.dayLabel} ${(user.dailyRewardDay % 7) + 1}',
                     () => notifier.claimDailyReward(),
                   ),
@@ -129,7 +133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: _buildActionCard(
                     context, '🧊', t.streakFreezeLabel,
-                    user.streakFreezeDaysLeft > 0 ? '${user.streakFreezeDaysLeft}j ⛵' : '50💰',
+                    user.streakFreezeDaysLeft > 0 ? '${user.streakFreezeDaysLeft}j ⛵' : '-50💰',
                     () => _confirmStreakFreeze(context, t, notifier),
                   ),
                 ),
@@ -163,7 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: _buildActionCard(
                     context, '🏆', t.milestones,
-                    user.streak > 0 ? '${user.streak} / ${UserProfile.streakMilestones.firstWhere((m) => m > user.streak, orElse: () => UserProfile.streakMilestones.last)} j' : 'Démarrer',
+                    user.streak > 0 ? '${user.streak} / ${UserProfile.streakMilestones.firstWhere((m) => m > user.streak, orElse: () => user.streak)} j' : 'Démarrer',
                     () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StreakMilestonesScreen())),
                   ),
                 ),
@@ -171,7 +175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: _buildActionCard(
                     context, '🌙', t.eveningEntryTitle,
-                    notifier.canSubmitEveningEntry() ? '10💰' : '✓ ${t.eveningDone}',
+                    notifier.canSubmitEveningEntry() ? '+10💰' : '✓ ${t.eveningDone}',
                     () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -197,9 +201,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
-  bool _isSameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
 
   Widget _buildActionCard(BuildContext context, String emoji, String title, String subtitle, VoidCallback? onTap) {
     return GestureDetector(

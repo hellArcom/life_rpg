@@ -5,7 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdateService {
-  // Remplacez par l'URL réelle de votre fichier version.json sur votre serveur
+  // url pas encore parfaitement fonctionnelle. A cause de la redirection 
   static const String _updateUrl = 'https://liferpg.dpdns.org/static/version.json';
 
   static Future<void> checkForUpdate(BuildContext context) async {

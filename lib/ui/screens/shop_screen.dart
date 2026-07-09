@@ -66,14 +66,7 @@ class ShopScreen extends ConsumerWidget {
                     )
                   : ElevatedButton(
                       onPressed: canAfford
-                          ? () {
-                              final success = ref.read(gameProvider.notifier).buyItem(item.id);
-                              if (!success && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Pas assez de pièces !')),
-                                );
-                              }
-                            }
+                          ? () => ref.read(gameProvider.notifier).buyItem(item.id)
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: canAfford ? Colors.amber : null,

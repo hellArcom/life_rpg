@@ -10,7 +10,6 @@ enum Difficulty {
   hard,
   legendary;
 
-  // Correction: Définition explicite du getter xpBase
   int get xpBase => switch (this) {
     Difficulty.easy => 50,
     Difficulty.medium => 150,
@@ -157,7 +156,7 @@ class UserProfile {
   bool hasPart(String partId) => unlockedCharacterParts.contains(partId);
   bool canUnlockPart(String partId) {
     final def = UserProfile.allParts.where((p) => p.id == partId).firstOrNull;
-    return def != null && level >= def.unlockLevel;
+    return def != null && level >= def.unlockLevel && def.cost == 0;
   }
 
   static const List<CharacterPartDefinition> allParts = [
@@ -348,6 +347,7 @@ class Bet {
   final String title;
   final List<String> linkedQuestIds;
   final DateTime deadline;
+  final DateTime createdAt;
   final int rewardXp;
   final int penaltyXp;
   final BetStatus status;
@@ -357,10 +357,11 @@ class Bet {
     required this.title,
     required this.linkedQuestIds,
     required this.deadline,
+    DateTime? createdAt,
     this.rewardXp = 100,
     this.penaltyXp = 50,
     this.status = BetStatus.active,
-  });
+  }) : createdAt = createdAt ?? DateTime.now();
 
   Bet copyWith({
     String? title,
@@ -375,6 +376,7 @@ class Bet {
       title: title ?? this.title,
       linkedQuestIds: linkedQuestIds ?? this.linkedQuestIds,
       deadline: deadline ?? this.deadline,
+      createdAt: createdAt,
       rewardXp: rewardXp ?? this.rewardXp,
       penaltyXp: penaltyXp ?? this.penaltyXp,
       status: status ?? this.status,
@@ -386,9 +388,10 @@ class Bet {
     'title': title,
     'linkedQuestIds': linkedQuestIds,
     'deadline': deadline.toIso8601String(),
+    'createdAt': createdAt.toIso8601String(),
     'rewardXp': rewardXp,
     'penaltyXp': penaltyXp,
-    'status': status.index,
+    'status': status.name,
   };
 
   factory Bet.fromJson(Map<String, dynamic> json) => Bet(
@@ -396,9 +399,10 @@ class Bet {
     title: json['title'],
     linkedQuestIds: List<String>.from(json['linkedQuestIds'] ?? []),
     deadline: DateTime.parse(json['deadline']),
+    createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     rewardXp: json['rewardXp'] ?? 100,
     penaltyXp: json['penaltyXp'] ?? 50,
-    status: BetStatus.values[json['status'] ?? 0],
+    status: BetStatus.values.byName(json['status'] ?? 'active'),
   );
 }
 
@@ -470,10 +474,10 @@ class Quest {
     'id': id,
     'title': title,
     'description': description,
-    'difficulty': difficulty.index,
+    'difficulty': difficulty.name,
     'category': category.toJson(),
-    'status': status.index,
-    'frequency': frequency.index,
+    'status': status.name,
+    'frequency': frequency.name,
     'lastCompletedDate': lastCompletedDate?.toIso8601String(),
     'reminderDate': reminderDate?.toIso8601String(),
     'startTime': startTime?.toIso8601String(),
@@ -486,10 +490,10 @@ class Quest {
     id: json['id'],
     title: json['title'],
     description: json['description'] ?? '',
-    difficulty: Difficulty.values[json['difficulty'] ?? 0],
+    difficulty: Difficulty.values.byName(json['difficulty'] ?? 'easy'),
     category: SkillCategory.fromJson(json['category']),
-    status: QuestStatus.values[json['status'] ?? 0],
-    frequency: QuestFrequency.values[json['frequency'] ?? 0],
+    status: QuestStatus.values.byName(json['status'] ?? 'todo'),
+    frequency: QuestFrequency.values.byName(json['frequency'] ?? 'once'),
     lastCompletedDate: json['lastCompletedDate'] != null ? DateTime.parse(json['lastCompletedDate']) : null,
     reminderDate: json['reminderDate'] != null ? DateTime.parse(json['reminderDate']) : null,
     startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : null,
