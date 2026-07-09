@@ -206,10 +206,46 @@ class GameNotifier extends Notifier<GameState> {
   void _saveAllToHive() {
     try {
       OfflineManager.saveData('game_data', state.toJson());
+
+      final user = state.user;
       WidgetService.updateWidget(
-        level: state.user.level,
-        streak: state.user.streak,
-        coins: state.user.coins,
+        level: user.level,
+        streak: user.streak,
+        coins: user.coins,
+      );
+
+      final xpForCurrent = (user.level - 1) * (user.level - 1) * 100;
+      final xpForNext = user.level * user.level * 100;
+      WidgetService.updateProgressWidget(
+        level: user.level,
+        xp: user.globalXp,
+        xpForCurrent: xpForCurrent,
+        xpForNext: xpForNext,
+        streak: user.streak,
+        coins: user.coins,
+        title: user.currentTitle,
+      );
+
+      final dailyQuests = state.quests
+          .where((q) => q.frequency == QuestFrequency.daily)
+          .take(5)
+          .toList();
+      WidgetService.updateDailyQuestsWidget(dailyQuests);
+
+      final now = DateTime.now();
+      final todayQuests = state.quests.where((q) {
+        if (q.frequency == QuestFrequency.daily) return true;
+        if (q.dueDate != null &&
+            q.dueDate!.year == now.year &&
+            q.dueDate!.month == now.month &&
+            q.dueDate!.day == now.day) return true;
+        return false;
+      }).toList();
+      WidgetService.updateCalendarWidget(
+        year: now.year,
+        month: now.month,
+        todayDay: now.day,
+        quests: todayQuests,
       );
     } catch (e) {
       debugPrint("Erreur lors de la sauvegarde Hive: $e");

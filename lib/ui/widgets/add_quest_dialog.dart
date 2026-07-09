@@ -4,7 +4,7 @@ import '../../models/game_models.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 
-void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? initialCategory, Quest? existingQuest}) {
+void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? initialCategory, Quest? existingQuest, Difficulty? initialDifficulty}) {
   final t = ref.read(translationsProvider);
   final gameState = ref.read(gameProvider);
   final categories = gameState.categories;
@@ -21,7 +21,7 @@ void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? ini
     builder: (context) {
       String title = existingQuest?.title ?? '';
       String description = existingQuest?.description ?? '';
-      Difficulty difficulty = existingQuest?.difficulty ?? Difficulty.easy;
+      Difficulty difficulty = existingQuest?.difficulty ?? initialDifficulty ?? Difficulty.easy;
       SkillCategory category = existingQuest?.category ?? initialCategory ?? categories.first;
       QuestFrequency frequency = existingQuest?.frequency ?? QuestFrequency.once;
       DateTime? reminderDate = existingQuest?.reminderDate;

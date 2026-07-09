@@ -27,7 +27,7 @@
 - Confirmation achat gel de série (AlertDialog)
 - remettre la catégories quotidien pour les quête quotidienne et les trouver plus facillement
 - corriger "cat" au début du nom des compétence 
+- mettre les widget mieux
 
 ## non implémenter
 - corriger bug avatar
-- mettre les widget mieux

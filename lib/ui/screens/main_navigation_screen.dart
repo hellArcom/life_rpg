@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/add_quest_dialog.dart';
+import '../../models/game_models.dart';
 import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
 import '../../services/update_service.dart';
@@ -48,8 +49,23 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   void _setupWidgetListener() {
     platform.setMethodCallHandler((call) async {
       if (call.method == "triggerAction") {
-        if (call.arguments == "com.example.life_rpg.ADD_QUEST") {
-          _handleQuickAdd();
+        final action = call.arguments as String? ?? '';
+        if (action == "com.example.life_rpg.ADD_QUEST") {
+          _handleQuickAdd(null);
+        } else if (action.startsWith("com.example.life_rpg.QUICK_ADD_")) {
+          final diff = action.split("QUICK_ADD_").last;
+          final difficulty = Difficulty.values.firstWhere(
+            (d) => d.name.toUpperCase() == diff,
+            orElse: () => Difficulty.easy,
+          );
+          _handleQuickAdd(difficulty);
+        } else if (action.startsWith("TOGGLE_QUEST:")) {
+          final questId = action.split("TOGGLE_QUEST:").last;
+          if (questId.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(gameProvider.notifier).toggleQuestStatus(questId);
+            });
+          }
         }
       }
     });
@@ -59,16 +75,23 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     try {
       final String? action = await platform.invokeMethod('getInitialAction');
       if (action == "com.example.life_rpg.ADD_QUEST") {
-        _handleQuickAdd();
+        _handleQuickAdd(null);
+      } else if (action != null && action.startsWith("com.example.life_rpg.QUICK_ADD_")) {
+        final diff = action.split("QUICK_ADD_").last;
+        final difficulty = Difficulty.values.firstWhere(
+          (d) => d.name.toUpperCase() == diff,
+          orElse: () => Difficulty.easy,
+        );
+        _handleQuickAdd(difficulty);
       }
     } on PlatformException catch (e) {
       debugPrint("Erreur lors de la récupération de l'action initiale: ${e.message}");
     }
   }
 
-  void _handleQuickAdd() {
+  void _handleQuickAdd(Difficulty? difficulty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showAddQuestDialog(context, ref);
+      showAddQuestDialog(context, ref, initialDifficulty: difficulty);
     });
   }
 
