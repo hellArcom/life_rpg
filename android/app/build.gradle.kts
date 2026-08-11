@@ -4,11 +4,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val isRelease = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
-if (isRelease) {
-    apply(plugin = "com.google.gms.google-services")
-}
-
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -16,7 +11,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.example.life_rpg"
+    namespace = "com.arcom.life_rpg"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -27,10 +22,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.life_rpg"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.arcom.life_rpg"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
@@ -42,7 +34,8 @@ android {
             applicationIdSuffix = ".test"
         }
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

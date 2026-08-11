@@ -1,0 +1,58 @@
+# F-Droid build recipe for Life RPG.
+#
+# Used directly from this repo with `fdroid build` (see F-Droid docs,
+# "Running fdroid build in your app's source"). Also ready to be copied into
+# the fdroiddata repository as metadata/com.arcom.life_rpg.yml when submitting.
+#
+# Before F-Droid can build:
+#   1. Bump pubspec.yaml (version: x.y.z+N) and create a git tag vx.y.z.
+#   2. Update `commit` below to that tag.
+#   3. Update CurrentVersion/CurrentVersionCode to match.
+
+Categories:
+  - Time
+  - Games
+License: GPL-3.0-only
+AuthorName: hellArcom
+SourceCode: https://github.com/hellArcom/life_rpg
+IssueTracker: https://github.com/hellArcom/life_rpg/issues
+Changelog: https://github.com/hellArcom/life_rpg/releases
+
+AutoName: Life RPG
+
+RepoType: git
+Repo: https://github.com/hellArcom/life_rpg.git
+
+Builds:
+  - versionName: '0.4.0'
+    versionCode: 1
+    commit: v0.4.0
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - linux
+      - windows
+    prebuild:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scanignore:
+      - $$flutter$$/bin/cache
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release
+
+# If you publish signed APKs on GitHub Releases, set AllowedAPKSigningKeys to
+# the SHA-256 digest of your signing certificate:
+#   keytool -printcert -jarfile app-release.apk | sed -n 's/.*SHA256: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]'
+# AllowedAPKSigningKeys:
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
+CurrentVersion: '0.4.0'
+CurrentVersionCode: 1

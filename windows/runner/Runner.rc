@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
+            VALUE "CompanyName", "Arcom" "\0"
             VALUE "FileDescription", "life_rpg" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "life_rpg" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Arcom. All rights reserved." "\0"
             VALUE "OriginalFilename", "life_rpg.exe" "\0"
             VALUE "ProductName", "life_rpg" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

@@ -1,0 +1,30 @@
+Transforme ta vie réelle en jeu de rôle. Life RPG te permet de définir tes propres quêtes, de les accomplir, et de regarder ton héros évoluer au fil de tes bonnes habitudes.
+
+<b>Gameplay principal</b>
+* Crée des quêtes avec 4 niveaux de difficulté : Facile, Moyen, Difficile et Légendaire
+* Gagne des points d'expérience, des pièces et grimpe en rang en accomplissant tes tâches
+* Enchaîne les séries quotidiennes (streaks) et débloque des jalons
+* Monte ton héros en niveau et débloque de nouveaux titres
+
+<b>Ton personnage</b>
+* Personnalise ton héros : cheveux, yeux, bouche, tenues, chapeaux et accessoires
+* Vois ton personnage évoluer au fil de ta progression
+
+<b>Reste motivé</b>
+* Widgets Android : quête en cours, progression du héros, ajout rapide, quêtes quotidiennes et calendrier mensuel
+* Notifications et rappels quotidiens pour garder tes habitudes
+* Un calendrier mensuel pour visualiser tes tâches
+
+<b>Systèmes de jeu avancés</b>
+* Un arbre de compétences pour spécialiser ton héros
+* Une boutique pour dépenser tes pièces
+* Des guildes, un classement et des codes de parrainage pour jouer entre amis
+* Des paris optionnels pour ajouter de l'enjeu à tes habitudes
+* Des résumés hebdomadaires et des statistiques pour suivre ta progression
+
+<b>Respect de la vie privée</b>
+* Tout est stocké localement sur ton appareil
+* Synchronisation optionnelle avec ton propre serveur Life RPG (auto-hébergé)
+* Pas de publicité, pas de traqueurs, aucun compte requis
+
+Life RPG est un logiciel libre et open source (GPL-3.0).

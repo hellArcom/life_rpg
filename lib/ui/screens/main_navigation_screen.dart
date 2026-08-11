@@ -24,7 +24,7 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
-  static const platform = MethodChannel('com.example.life_rpg/widget');
+  static const platform = MethodChannel('com.arcom.life_rpg/widget');
   int _currentIndex = 0;
   
   @override
@@ -51,9 +51,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     platform.setMethodCallHandler((call) async {
       if (call.method == "triggerAction") {
         final action = call.arguments as String? ?? '';
-        if (action == "com.example.life_rpg.ADD_QUEST") {
+        if (action == "com.arcom.life_rpg.ADD_QUEST") {
           _handleQuickAdd(null);
-        } else if (action.startsWith("com.example.life_rpg.QUICK_ADD_")) {
+        } else if (action.startsWith("com.arcom.life_rpg.QUICK_ADD_")) {
           final diff = action.split("QUICK_ADD_").last;
           final difficulty = Difficulty.values.firstWhere(
             (d) => d.name.toUpperCase() == diff,
@@ -75,9 +75,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   Future<void> _checkInitialAction() async {
     try {
       final String? action = await platform.invokeMethod('getInitialAction');
-      if (action == "com.example.life_rpg.ADD_QUEST") {
+      if (action == "com.arcom.life_rpg.ADD_QUEST") {
         _handleQuickAdd(null);
-      } else if (action != null && action.startsWith("com.example.life_rpg.QUICK_ADD_")) {
+      } else if (action != null && action.startsWith("com.arcom.life_rpg.QUICK_ADD_")) {
         final diff = action.split("QUICK_ADD_").last;
         final difficulty = Difficulty.values.firstWhere(
           (d) => d.name.toUpperCase() == diff,

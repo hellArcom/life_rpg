@@ -1,4 +1,4 @@
-package com.example.life_rpg
+package com.arcom.life_rpg
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -119,7 +119,7 @@ class CalendarWidget : AppWidgetProvider() {
 
                         val questId = quest.getString("id")
                         val toggleIntent = Intent(context, MainActivity::class.java).apply {
-                            action = "com.example.life_rpg.TOGGLE_QUEST"
+                            action = "com.arcom.life_rpg.TOGGLE_QUEST"
                             putExtra("quest_id", questId)
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }

@@ -1,4 +1,4 @@
-package com.example.life_rpg
+package com.arcom.life_rpg
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

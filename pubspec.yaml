@@ -1,7 +1,7 @@
 name: life_rpg_dev
 description: "Life RPG Dev , https://liferpg.dpdns.org/"
 publish_to: 'none'
-version: 0.4.0
+version: 0.4.0+1
 
 environment:
   sdk: ^3.11.4
@@ -17,7 +17,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^3.3.1
-  google_fonts: ^8.1.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   http: ^1.6.0
@@ -46,3 +45,7 @@ flutter:
   assets:
     - assets/sounds/
     - assets/characters/
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Variable.ttf

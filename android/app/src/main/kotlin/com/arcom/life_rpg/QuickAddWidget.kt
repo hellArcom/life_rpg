@@ -1,4 +1,4 @@
-package com.example.life_rpg
+package com.arcom.life_rpg
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -19,7 +19,7 @@ class QuickAddWidget : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_quick_add)
 
             val easyIntent = Intent(context, MainActivity::class.java).apply {
-                action = "com.example.life_rpg.QUICK_ADD_EASY"
+                action = "com.arcom.life_rpg.QUICK_ADD_EASY"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             views.setOnClickPendingIntent(R.id.widget_btn_easy, PendingIntent.getActivity(
@@ -28,7 +28,7 @@ class QuickAddWidget : AppWidgetProvider() {
             ))
 
             val mediumIntent = Intent(context, MainActivity::class.java).apply {
-                action = "com.example.life_rpg.QUICK_ADD_MEDIUM"
+                action = "com.arcom.life_rpg.QUICK_ADD_MEDIUM"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             views.setOnClickPendingIntent(R.id.widget_btn_medium, PendingIntent.getActivity(
@@ -37,7 +37,7 @@ class QuickAddWidget : AppWidgetProvider() {
             ))
 
             val hardIntent = Intent(context, MainActivity::class.java).apply {
-                action = "com.example.life_rpg.QUICK_ADD_HARD"
+                action = "com.arcom.life_rpg.QUICK_ADD_HARD"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             views.setOnClickPendingIntent(R.id.widget_btn_hard, PendingIntent.getActivity(
@@ -46,7 +46,7 @@ class QuickAddWidget : AppWidgetProvider() {
             ))
 
             val legendaryIntent = Intent(context, MainActivity::class.java).apply {
-                action = "com.example.life_rpg.QUICK_ADD_LEGENDARY"
+                action = "com.arcom.life_rpg.QUICK_ADD_LEGENDARY"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             views.setOnClickPendingIntent(R.id.widget_btn_legendary, PendingIntent.getActivity(
