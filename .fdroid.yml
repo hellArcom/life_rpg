@@ -24,12 +24,12 @@ RepoType: git
 Repo: https://github.com/hellArcom/life_rpg.git
 
 Builds:
-  - versionName: '0.4.0'
+  - versionName: 0.4.0
     versionCode: 1
     commit: 64fbe1997ad8351c682cd7818b7054094a7149b3
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
-      - flutter@stable
+      - flutter@221059e0b6
     rm:
       - ios
       - linux
@@ -54,5 +54,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: '0.4.0'
+CurrentVersion: 0.4.0
 CurrentVersionCode: 1
