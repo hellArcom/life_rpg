@@ -22,9 +22,9 @@ subprojects {
 gradle.addProjectEvaluationListener(object : ProjectEvaluationListener {
     override fun beforeEvaluate(project: Project) {}
     override fun afterEvaluate(project: Project, state: ProjectState) {
-        if (project.hasProperty("android")) {
+        if (project.plugins.hasPlugin("com.android.library") || project.plugins.hasPlugin("com.android.application")) {
             val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-            android.compileSdkVersion(35)
+            android.compileSdkVersion(36)
             android.compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17

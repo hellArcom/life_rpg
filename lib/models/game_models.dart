@@ -93,6 +93,9 @@ class UserProfile {
   final List<String> unlockedCharacterParts;
   final double xpMultiplier;
   final List<int> claimedStreakMilestones;
+  final String referralCode;
+  final String? referredBy;
+  final bool referralSubmitted;
 
   UserProfile({
     required this.uid,
@@ -131,6 +134,9 @@ class UserProfile {
     ],
     this.xpMultiplier = 1.0,
     this.claimedStreakMilestones = const [],
+    this.referralCode = '',
+    this.referredBy,
+    this.referralSubmitted = false,
   });
 
   String get currentTitle {
@@ -153,9 +159,9 @@ class UserProfile {
   bool hasClaimedMilestone(int day) => claimedStreakMilestones.contains(day);
 
   String partId(String category) => characterParts[category] ?? '${category}_1';
-  bool hasPart(String partId) => unlockedCharacterParts.contains(partId);
-  bool canUnlockPart(String partId) {
-    final def = UserProfile.allParts.where((p) => p.id == partId).firstOrNull;
+  bool hasPart(String id) => unlockedCharacterParts.contains(id);
+  bool canUnlockPart(String id) {
+    final def = UserProfile.allParts.where((p) => p.id == id).firstOrNull;
     return def != null && level >= def.unlockLevel && def.cost == 0;
   }
 
@@ -166,43 +172,52 @@ class UserProfile {
     CharacterPartDefinition('skin_3', 'skin', 'Moyen',    1, 0, Color(0xFFD99B6C), Color(0xFFB87D4A)),
     CharacterPartDefinition('skin_4', 'skin', 'Foncé',    5, 0, Color(0xFF8D5524), Color(0xFF6B3F1A)),
     CharacterPartDefinition('skin_5', 'skin', 'Ébène',   10, 0, Color(0xFF5D3A1A), Color(0xFF3D2510)),
-    // Hair (6)
+    // Hair (8)
     CharacterPartDefinition('hair_0', 'hair', 'Chauve',   1, 0, Color(0xFF2C1810), Color(0xFF4A2C20)),
     CharacterPartDefinition('hair_1', 'hair', 'Court',    1, 0, Color(0xFF2C1810), Color(0xFF4A2C20)),
     CharacterPartDefinition('hair_2', 'hair', 'Long',     4, 0, Color(0xFF1A1A2E), Color(0xFF8B4513)),
     CharacterPartDefinition('hair_3', 'hair', 'Bouclé',   8, 0, Color(0xFFFF6B35), Color(0xFFDAA520)),
     CharacterPartDefinition('hair_4', 'hair', 'Queue',   12, 0, Color(0xFF2C1810), Color(0xFFFF69B4)),
     CharacterPartDefinition('hair_5', 'hair', 'Blond',   14, 0, Color(0xFFF4D03F), Color(0xFFD4AC0D)),
-    // Eyes (4)
+    CharacterPartDefinition('hair_6', 'hair', 'Indigo',  16, 40, Color(0xFF34495E), Color(0xFF7FB3D5)),
+    CharacterPartDefinition('hair_7', 'hair', 'Roux',    18, 60, Color(0xFF7E5109), Color(0xFFC0392B)),
+    // Eyes (5)
     CharacterPartDefinition('eyes_1', 'eyes', 'Ronds',  1, 0, Color(0xFF1A1A2E), Color(0xFF4A90D9)),
     CharacterPartDefinition('eyes_2', 'eyes', 'Amandes', 3, 0, Color(0xFF1A1A2E), Color(0xFF50C878)),
     CharacterPartDefinition('eyes_3', 'eyes', 'Grands',  6, 0, Color(0xFF1A1A2E), Color(0xFF9B59B6)),
     CharacterPartDefinition('eyes_4', 'eyes', 'Froncés', 9, 0, Color(0xFF1A1A2E), Color(0xFFE74C3C)),
+    CharacterPartDefinition('eyes_5', 'eyes', 'Ambre',  12, 0, Color(0xFF1A1A2E), Color(0xFFF1C40F)),
     // Eyebrows (3)
     CharacterPartDefinition('brow_1', 'brow', 'Neutre', 1, 0, Color(0xFF2C1810), Color(0xFF2C1810)),
     CharacterPartDefinition('brow_2', 'brow', 'Arqués', 5, 0, Color(0xFF2C1810), Color(0xFF2C1810)),
     CharacterPartDefinition('brow_3', 'brow', 'Froncés', 8, 0, Color(0xFF2C1810), Color(0xFF2C1810)),
-    // Mouth (4)
+    // Mouth (5)
     CharacterPartDefinition('mouth_1', 'mouth', 'Sourire',   1, 0, Color(0xFFE74C3C), Color(0xFFC0392B)),
     CharacterPartDefinition('mouth_2', 'mouth', 'Grand',     4, 0, Color(0xFFE74C3C), Color(0xFFC0392B)),
     CharacterPartDefinition('mouth_3', 'mouth', 'Neutre',    7, 0, Color(0xFFE74C3C), Color(0xFFC0392B)),
     CharacterPartDefinition('mouth_4', 'mouth', 'Bouche ouverte', 10, 0, Color(0xFFE74C3C), Color(0xFF2C3E50)),
-    // Outfit (5 – RPG classes)
+    CharacterPartDefinition('mouth_5', 'mouth', 'Sourire fin', 12, 0, Color(0xFFE74C3C), Color(0xFFC0392B)),
+    // Outfit (7 – RPG classes)
     CharacterPartDefinition('outfit_1', 'outfit', 'Guerrier',    1, 0, Color(0xFF7F8C8D), Color(0xFFF1C40F)),
     CharacterPartDefinition('outfit_2', 'outfit', 'Mage',        3, 0, Color(0xFF5B2C6F), Color(0xFFD4AC0D)),
     CharacterPartDefinition('outfit_3', 'outfit', 'Voleur',      7, 0, Color(0xFF1E8449), Color(0xFF17202A)),
     CharacterPartDefinition('outfit_4', 'outfit', 'Paladin',    11, 0, Color(0xFFD5D8DC), Color(0xFFF1C40F)),
     CharacterPartDefinition('outfit_5', 'outfit', 'Chevalier Noir', 15, 0, Color(0xFF17202A), Color(0xFF8B0000)),
-    // Hat (3 + none)
+    CharacterPartDefinition('outfit_6', 'outfit', 'Ranger',     17, 60, Color(0xFF196F3D), Color(0xFFD4AC0D)),
+    CharacterPartDefinition('outfit_7', 'outfit', 'Écuyer',     19, 80, Color(0xFF2E4053), Color(0xFFE74C3C)),
+    // Hat (4 + none)
     CharacterPartDefinition('hat_0', 'hat', 'Aucun',     1, 0, Color(0x00000000), Color(0x00000000)),
     CharacterPartDefinition('hat_1', 'hat', 'Casquette', 6, 50, Color(0xFFE74C3C), Color(0xFFC0392B)),
     CharacterPartDefinition('hat_2', 'hat', 'Chapeau',  10, 80, Color(0xFF2E4053), Color(0xFF5D6D7E)),
     CharacterPartDefinition('hat_3', 'hat', 'Couronne', 15, 200, Color(0xFFF1C40F), Color(0xFFD4AC0D)),
+    CharacterPartDefinition('hat_4', 'hat', 'Salière',  18, 100, Color(0xFF7E5109), Color(0xFFF1C40F)),
+    CharacterPartDefinition('hat_5', 'hat', 'Chapeau Magique', 20, 120, Color(0xFF5B2C6F), Color(0xFF8E44AD)),
     // Accessory (3 + none)
     CharacterPartDefinition('acc_0', 'acc', 'Aucun',    1, 0, Color(0x00000000), Color(0x00000000)),
     CharacterPartDefinition('acc_1', 'acc', 'Lunettes', 7, 60, Color(0xFF1A1A2E), Color(0xFF34495E)),
     CharacterPartDefinition('acc_2', 'acc', 'Masque',  10, 80, Color(0xFF7F8C8D), Color(0xFF95A5A6)),
     CharacterPartDefinition('acc_3', 'acc', 'Diadème', 13, 150, Color(0xFFF1C40F), Color(0xFFE67E22)),
+    CharacterPartDefinition('acc_4', 'acc', 'Breloques', 16, 90, Color(0xFFF1C40F), Color(0xFF9B59B6)),
   ];
 
   UserProfile copyWith({
@@ -224,6 +239,9 @@ class UserProfile {
     List<String>? unlockedCharacterParts,
     double? xpMultiplier,
     List<int>? claimedStreakMilestones,
+    String? referralCode,
+    String? referredBy,
+    bool? referralSubmitted,
   }) {
     return UserProfile(
       uid: uid, 
@@ -245,6 +263,9 @@ class UserProfile {
       unlockedCharacterParts: unlockedCharacterParts ?? this.unlockedCharacterParts,
       xpMultiplier: xpMultiplier ?? this.xpMultiplier,
       claimedStreakMilestones: claimedStreakMilestones ?? this.claimedStreakMilestones,
+      referralCode: referralCode ?? this.referralCode,
+      referredBy: referredBy ?? this.referredBy,
+      referralSubmitted: referralSubmitted ?? this.referralSubmitted,
     );
   }
 
@@ -268,6 +289,9 @@ class UserProfile {
     'unlockedCharacterParts': unlockedCharacterParts,
     'xpMultiplier': xpMultiplier,
     'claimedStreakMilestones': claimedStreakMilestones,
+    'referralCode': referralCode,
+    'referredBy': referredBy,
+    'referralSubmitted': referralSubmitted,
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
@@ -297,6 +321,9 @@ class UserProfile {
     ]),
     xpMultiplier: (json['xpMultiplier'] ?? 1.0).toDouble(),
     claimedStreakMilestones: List<int>.from(json['claimedStreakMilestones'] ?? []),
+    referralCode: json['referralCode'] ?? '',
+    referredBy: json['referredBy'],
+    referralSubmitted: json['referralSubmitted'] ?? false,
   );
 }
 
@@ -700,19 +727,22 @@ class LeaderboardEntry {
 }
 
 class EveningEntry {
+  final String id;
   final DateTime date;
   final String text;
   final String mood;
   final int coinReward;
 
   EveningEntry({
+    String? id,
     required this.date,
     required this.text,
     required this.mood,
     this.coinReward = 0,
-  });
+  }) : id = id ?? date.toIso8601String();
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'date': date.toIso8601String(),
     'text': text,
     'mood': mood,
@@ -720,11 +750,25 @@ class EveningEntry {
   };
 
   factory EveningEntry.fromJson(Map<String, dynamic> json) => EveningEntry(
+    id: json['id'],
     date: DateTime.parse(json['date']),
     text: json['text'],
     mood: json['mood'],
     coinReward: json['coinReward'] ?? 0,
   );
+
+  EveningEntry copyWith({
+    String? text,
+    String? mood,
+  }) {
+    return EveningEntry(
+      id: id,
+      date: date,
+      text: text ?? this.text,
+      mood: mood ?? this.mood,
+      coinReward: coinReward,
+    );
+  }
 }
 
 class CharacterPartDefinition {
@@ -745,4 +789,6 @@ class CharacterPartDefinition {
     this.color1,
     this.color2,
   );
+
+  String get assetPath => 'assets/characters/$id.png';
 }

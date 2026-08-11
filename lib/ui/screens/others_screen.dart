@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import 'settings_screen.dart';
+import 'referral_screen.dart';
 
 
 import 'dart:io' as io;
@@ -95,6 +96,16 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
             Icons.import_export,
             Colors.amber,
             () => _showBackupDialog(context, t),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.referral,
+            t.referralDesc,
+            Icons.group_add,
+            Colors.pink,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const ReferralScreen())),
           ),
           const SizedBox(height: 16),
           _buildFeatureCard(

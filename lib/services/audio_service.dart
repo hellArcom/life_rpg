@@ -1,6 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
 
 class AudioService {
   static final AudioPlayer _player = AudioPlayer();
@@ -36,13 +36,27 @@ class AudioService {
   }
 
   static Future<void> _hapticFeedback(int level) async {
-    switch (level) {
-      case 1:
-        await HapticFeedback.lightImpact();
-      case 2:
-        await HapticFeedback.mediumImpact();
-      case 3:
-        await HapticFeedback.heavyImpact();
+    if (!(defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS)) {
+      return;
+    }
+    try {
+      await Vibration.cancel();
+      switch (level) {
+        case 1:
+          await Vibration.vibrate(duration: 60);
+          break;
+        case 2:
+          await Vibration.vibrate(duration: 150);
+          break;
+        case 3:
+          await Vibration.vibrate(pattern: [0, 250, 100, 250]);
+          break;
+        default:
+          break;
+      }
+    } catch (e) {
+      debugPrint('Haptic error: $e');
     }
   }
 }

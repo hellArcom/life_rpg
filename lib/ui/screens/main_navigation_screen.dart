@@ -40,6 +40,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       ref.read(gameProvider.notifier).checkDailyPenalties();
       NotificationService.scheduleDailyProactiveReminder();
       NotificationService.scheduleEveningEntryReminder();
+      ref.read(gameProvider.notifier).syncWithServer();
       if (context.mounted) {
         UpdateService.checkForUpdate(context);
       }
@@ -95,20 +96,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     });
   }
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const QuestsScreen(),
-    const CalendarScreen(),
-    const SkillsScreen(),
-    const BetsScreen(),
-    const OthersScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
 
-    final coins = ref.watch(gameProvider).user.coins;
+    final coins = ref.watch(gameProvider.select((s) => s.user.coins));
 
     return Scaffold(
       appBar: AppBar(
@@ -137,7 +129,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: _currentIndex, children: const [
+        HomeScreen(),
+        QuestsScreen(),
+        CalendarScreen(),
+        SkillsScreen(),
+        BetsScreen(),
+        OthersScreen(),
+      ]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

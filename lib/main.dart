@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/app_theme.dart';
 import 'core/offline_manager.dart';
 import 'services/notification_service.dart';
@@ -8,7 +9,10 @@ import 'providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  await initializeDateFormatting('fr');
+  await initializeDateFormatting('en');
+
   await NotificationService.init();
   await OfflineManager.init();
   

@@ -80,7 +80,7 @@ class CharacterCustomizationScreen extends ConsumerWidget {
                                     SizedBox(
                                       width: 48,
                                       height: 48,
-                                      child: _partIcon(part, isUnlocked),
+                                      child: _partIcon(context, part, isUnlocked),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
@@ -161,72 +161,20 @@ class CharacterCustomizationScreen extends ConsumerWidget {
     }
   }
 
-  Widget _partIcon(CharacterPartDefinition part, bool isUnlocked) {
-    final opacity = isUnlocked ? 1.0 : 0.3;
+  Widget _partIcon(BuildContext context, CharacterPartDefinition part, bool isUnlocked) {
     return Opacity(
-      opacity: opacity,
-      child: CustomPaint(
-        painter: _MiniIconPainter(part),
-        size: const Size(48, 48),
+      opacity: isUnlocked ? 1.0 : 0.3,
+      child: Image.asset(
+        part.assetPath,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.none,
+        width: 48,
+        height: 48,
+        errorBuilder: (_, _, _) => Icon(
+          Icons.help_outline,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }
-}
-
-class _MiniIconPainter extends CustomPainter {
-  final CharacterPartDefinition part;
-  _MiniIconPainter(this.part);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final c1 = part.color1;
-    final c2 = part.color2;
-
-    switch (part.category) {
-      case 'skin':
-        canvas.drawOval(Rect.fromCenter(center: Offset(cx, cy), width: 32, height: 36), Paint()..color = c1);
-        break;
-      case 'hair':
-        canvas.drawArc(Rect.fromCenter(center: Offset(cx, cy - 8), width: 36, height: 20), 0, 3.14, true, Paint()..color = c1);
-        break;
-      case 'eyes':
-        canvas.drawCircle(Offset(cx - 8, cy), 6, Paint()..color = Colors.white);
-        canvas.drawCircle(Offset(cx + 8, cy), 6, Paint()..color = Colors.white);
-        canvas.drawCircle(Offset(cx - 8, cy), 3, Paint()..color = c1);
-        canvas.drawCircle(Offset(cx + 8, cy), 3, Paint()..color = c1);
-        break;
-      case 'brow':
-        final p = Paint()..color = c1..strokeWidth = 3..strokeCap = StrokeCap.round;
-        canvas.drawLine(Offset(cx - 12, cy - 2), Offset(cx - 4, cy - 2), p);
-        canvas.drawLine(Offset(cx + 4, cy - 2), Offset(cx + 12, cy - 2), p);
-        break;
-      case 'mouth':
-        final p = Paint()..color = c1..strokeWidth = 3;
-        canvas.drawLine(Offset(cx - 8, cy + 2), Offset(cx + 8, cy + 2), p);
-        break;
-      case 'outfit':
-        final path = Path()
-          ..moveTo(cx - 14, cy + 6)
-          ..quadraticBezierTo(cx, cy - 4, cx + 14, cy + 6)
-          ..lineTo(cx + 12, cy + 20)
-          ..lineTo(cx - 12, cy + 20)
-          ..close();
-        canvas.drawPath(path, Paint()..color = c1);
-        break;
-      case 'hat':
-        canvas.drawArc(Rect.fromCenter(center: Offset(cx, cy - 4), width: 34, height: 18), 3.14, 3.14, true, Paint()..color = c1);
-        canvas.drawOval(Rect.fromCenter(center: Offset(cx, cy + 4), width: 32, height: 6), Paint()..color = c2);
-        break;
-      case 'acc':
-        canvas.drawCircle(Offset(cx - 10, cy), 6, Paint()..color = c1);
-        canvas.drawCircle(Offset(cx + 10, cy), 6, Paint()..color = c1);
-        canvas.drawLine(Offset(cx - 4, cy), Offset(cx + 4, cy), Paint()..color = c1..strokeWidth = 2);
-        break;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _MiniIconPainter old) => old.part.id != part.id;
 }

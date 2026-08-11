@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_models.dart'; 
 import '../services/audio_service.dart';
 import '../services/notification_service.dart';
+import '../services/server_service.dart';
 import '../services/widget_service.dart';
 import '../core/offline_manager.dart';
+import '../core/data_migration.dart';
 import '../core/utils.dart';
 
 class GameState {
@@ -29,6 +31,7 @@ class GameState {
   final DateTime? lastPenaltyDate;
   final bool celebrationPending;
   final List<EveningEntry> eveningLog;
+  final int dataVersion;
 
   GameState({
     required this.user,
@@ -50,6 +53,7 @@ class GameState {
     this.lastPenaltyDate,
     this.celebrationPending = false,
     this.eveningLog = const [],
+    this.dataVersion = 0,
   });
 
   GameState copyWith({
@@ -72,6 +76,7 @@ class GameState {
     DateTime? lastPenaltyDate,
     bool? celebrationPending,
     List<EveningEntry>? eveningLog,
+    int? dataVersion,
   }) {
     return GameState(
       user: user ?? this.user,
@@ -93,6 +98,7 @@ class GameState {
       lastPenaltyDate: lastPenaltyDate ?? this.lastPenaltyDate,
       celebrationPending: celebrationPending ?? this.celebrationPending,
       eveningLog: eveningLog ?? this.eveningLog,
+      dataVersion: dataVersion ?? this.dataVersion,
     );
   }
 
@@ -110,8 +116,9 @@ class GameState {
     'weeklyXpLog': weeklyXpLog,
     'lastWeeklyLogWeekStart': lastWeeklyLogWeekStart?.toIso8601String(),
     'lastPenaltyDate': lastPenaltyDate?.toIso8601String(),
-    'celebrationPending': celebrationPending,
+    'celebrationPending': false,
     'eveningLog': eveningLog.map((e) => e.toJson()).toList(),
+    'dataVersion': dataVersion,
     'currentGuild': currentGuild?.toJson(),
     'availableGuilds': availableGuilds.map((g) => g.toJson()).toList(),
     'guildMessages': guildMessages.map((m) => m.toJson()).toList(),
@@ -141,8 +148,9 @@ class GameState {
       weeklyXpLog: _parseWeeklyXpLog(json['weeklyXpLog']),
       lastWeeklyLogWeekStart: json['lastWeeklyLogWeekStart'] != null ? DateTime.parse(json['lastWeeklyLogWeekStart']) : null,
       lastPenaltyDate: json['lastPenaltyDate'] != null ? DateTime.parse(json['lastPenaltyDate']) : null,
-      celebrationPending: json['celebrationPending'] ?? false,
+      celebrationPending: false,
       eveningLog: (json['eveningLog'] as List<dynamic>?)?.map((e) => EveningEntry.fromJson(e)).toList() ?? [],
+      dataVersion: json['dataVersion'] ?? 0,
       currentGuild: json['currentGuild'] != null ? Guild.fromJson(json['currentGuild']) : null,
       availableGuilds: (json['availableGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
       guildMessages: (json['guildMessages'] as List<dynamic>?)?.map((m) => ChatMessage.fromJson(m)).toList() ?? [],
@@ -163,7 +171,19 @@ class GameNotifier extends Notifier<GameState> {
     try {
       final savedData = OfflineManager.getData('game_data');
       if (savedData != null && savedData is Map<String, dynamic>) {
-        final loaded = GameState.fromJson(savedData);
+        final rawVersion = savedData['dataVersion'];
+        final needsMigration = rawVersion is! int || rawVersion < currentDataVersion;
+        if (needsMigration) {
+          final existingBackup = OfflineManager.getData('game_data_backup');
+          if (existingBackup == null) {
+            OfflineManager.saveData('game_data_backup', savedData);
+          }
+        }
+        final migrated = migrateData(savedData);
+        final loaded = GameState.fromJson(migrated);
+        if (needsMigration) {
+          OfflineManager.saveData('game_data', migrated);
+        }
         Future.microtask(() { try { checkBadges(); } catch (_) {} });
         return loaded;
       }
@@ -213,6 +233,13 @@ class GameNotifier extends Notifier<GameState> {
     ShopItem(id: 'hat_1', name: 'Casquette Rouge', description: 'Une casquette stylée', icon: '🧢', cost: 50, type: 'character_part', value: 'hat_1'),
     ShopItem(id: 'hat_3', name: 'Couronne Royale', description: 'Une couronne de roi', icon: '👑', cost: 200, type: 'character_part', value: 'hat_3'),
     ShopItem(id: 'acc_3', name: 'Diadème Étincelant', description: 'Un diadème précieux', icon: '💎', cost: 150, type: 'character_part', value: 'acc_3'),
+    ShopItem(id: 'hat_4', name: 'Salière Aventurier', description: 'Une salière pratique', icon: '🧢', cost: 100, type: 'character_part', value: 'hat_4'),
+    ShopItem(id: 'hat_5', name: 'Chapeau Magique', description: 'Un chapeau de mage étoilé', icon: '🎩', cost: 120, type: 'character_part', value: 'hat_5'),
+    ShopItem(id: 'acc_4', name: 'Breloques d\'Or', description: 'Breloques chatoyantes', icon: '🔮', cost: 90, type: 'character_part', value: 'acc_4'),
+    ShopItem(id: 'hair_6', name: 'Cheveux Indigo', description: 'Des cheveux teints en indigo', icon: '💜', cost: 40, type: 'character_part', value: 'hair_6'),
+    ShopItem(id: 'hair_7', name: 'Cheveux Roux', description: 'Une teinte rousse flamboyante', icon: '🟠', cost: 60, type: 'character_part', value: 'hair_7'),
+    ShopItem(id: 'outfit_6', name: 'Tenue de Ranger', description: 'Tenue d\'aventurier des forêts', icon: '🏹', cost: 60, type: 'character_part', value: 'outfit_6'),
+    ShopItem(id: 'outfit_7', name: 'Tenue d\'Écuyer', description: 'Une armure légère d\'écuyer', icon: '🛡️', cost: 80, type: 'character_part', value: 'outfit_7'),
     ShopItem(id: 'title_legend', name: 'Titre: Légende Vivante', description: 'Titre exclusif dans votre profil', icon: '🏆', cost: 300, type: 'title', value: 'Légende Vivante'),
     ShopItem(id: 'title_sage', name: 'Titre: Sage Ancien', description: 'Titre mystique pour votre profil', icon: '📜', cost: 200, type: 'title', value: 'Sage Ancien'),
     ShopItem(id: 'freeze_1', name: 'Gel de Série ×1', description: 'Protège votre série pour un jour', icon: '🧊', cost: 50, type: 'streak_freeze'),
@@ -249,21 +276,19 @@ class GameNotifier extends Notifier<GameState> {
         title: user.currentTitle,
       );
 
-      final dailyQuests = state.quests
-          .where((q) => q.frequency == QuestFrequency.daily)
-          .take(5)
-          .toList();
-      WidgetService.updateDailyQuestsWidget(dailyQuests);
-
       final now = DateTime.now();
       final todayQuests = state.quests.where((q) {
         if (q.frequency == QuestFrequency.daily) return true;
         if (q.dueDate != null &&
             q.dueDate!.year == now.year &&
             q.dueDate!.month == now.month &&
-            q.dueDate!.day == now.day) return true;
+            q.dueDate!.day == now.day) {
+          return true;
+        }
         return false;
       }).toList();
+      final dailyQuests = todayQuests.where((q) => q.frequency == QuestFrequency.daily).take(5).toList();
+      WidgetService.updateDailyQuestsWidget(dailyQuests);
       WidgetService.updateCalendarWidget(
         year: now.year,
         month: now.month,
@@ -646,6 +671,28 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
+  void updateEveningEntry(String id, String text, String mood) {
+    final updatedLog = state.eveningLog.map((e) {
+      if (e.id == id) {
+        return e.copyWith(text: text, mood: mood);
+      }
+      return e;
+    }).toList();
+    state = state.copyWith(eveningLog: updatedLog);
+    _saveAllToHive();
+  }
+
+  void deleteEveningEntry(String id) {
+    final entry = state.eveningLog.where((e) => e.id == id).firstOrNull;
+    if (entry == null) return;
+    state = state.copyWith(
+      eveningLog: state.eveningLog.where((e) => e.id != id).toList(),
+      user: state.user.copyWith(coins: max(0, state.user.coins - entry.coinReward)),
+    );
+    NotificationService.showFeedback("Bilan supprimé", entry.coinReward > 0 ? '-${entry.coinReward}💰 retirées' : 'Entrée retirée de votre journal');
+    _saveAllToHive();
+  }
+
   void addFocusXp(int minutes) {
     final xpGain = minutes * 5;
     final newGlobalXp = state.user.globalXp + xpGain;
@@ -688,7 +735,6 @@ class GameNotifier extends Notifier<GameState> {
   }
 
   void reorderSkills(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex -= 1;
     final items = List<Skill>.from(state.skills);
     final item = items.removeAt(oldIndex);
     items.insert(newIndex, item);
@@ -782,13 +828,20 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
-  String exportData() => jsonEncode(OfflineManager.getData('game_data'));
+  String exportData() {
+    final raw = OfflineManager.getData('game_data');
+    if (raw is Map<String, dynamic>) {
+      return jsonEncode(migrateData(raw));
+    }
+    return jsonEncode(raw);
+  }
 
   void importData(String jsonString) {
     try {
       final data = jsonDecode(jsonString);
       if (data is Map<String, dynamic>) {
-        final parsedState = GameState.fromJson(data);
+        final migrated = migrateData(data);
+        final parsedState = GameState.fromJson(migrated);
         OfflineManager.saveData('game_data', parsedState.toJson());
         state = parsedState;
       } else {
@@ -802,6 +855,140 @@ class GameNotifier extends Notifier<GameState> {
   void updatePseudo(String newPseudo) {
     state = state.copyWith(user: state.user.copyWith(pseudo: newPseudo));
     _saveAllToHive();
+  }
+
+  // ====== PARRAINAGE & SERVEUR ======
+
+  static const int referrerRewardCoins = 250;
+  static const int referrerRewardFreezeDays = 3;
+  static const int referrerRewardXp = 300;
+  static const int refereeRewardCoins = 100;
+  static const int refereeRewardXp = 100;
+
+  static const String _codeCharset = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+  /// Garantit que l'utilisateur possède un code de parrainage unique.
+  String ensureReferralCode() {
+    var code = state.user.referralCode;
+    if (code.isEmpty) {
+      final rnd = Random();
+      code = List.generate(
+        8,
+        (_) => _codeCharset[rnd.nextInt(_codeCharset.length)],
+      ).join();
+      state = state.copyWith(user: state.user.copyWith(referralCode: code));
+      _saveAllToHive();
+    }
+    return code;
+  }
+
+  /// Synchronisation au lancement : enregistre l'app + ping + applique les
+  /// récompenses de parrainage en attente. 100% silencieux hors-ligne.
+  Future<void> syncWithServer() async {
+    try {
+      final code = ensureReferralCode();
+      if (!await ServerService.isRegistered()) {
+        final reg = await ServerService.register(code);
+        if (reg == null) return;
+      }
+      final res = await ServerService.ping();
+      if (res == null) return;
+      final rewards = res['pending_rewards'];
+      if (rewards is List && rewards.isNotEmpty) {
+        await _applyServerRewards(rewards);
+      }
+    } catch (e) {
+      debugPrint('syncWithServer : $e');
+    }
+  }
+
+  /// Soumet le code d'un ami. Renvoie un statut pour l'écran :
+  /// 'ok' | 'self' | 'already' | 'invalid' | 'offline'.
+  Future<String> submitReferral(String entered) async {
+    final user = state.user;
+    final myCode = ensureReferralCode();
+    final code = entered.trim().toUpperCase();
+    if (code.isEmpty) return 'invalid';
+    if (code == myCode) return 'self';
+    if (user.referralSubmitted) return 'already';
+
+    try {
+      final res = await ServerService.submitReferral(code);
+      if (res == null) return 'offline';
+      final status = res['status'];
+      if (status == 'ok') {
+        final newXp = state.user.globalXp + refereeRewardXp;
+        state = state.copyWith(
+          user: state.user.copyWith(
+            coins: state.user.coins + refereeRewardCoins,
+            globalXp: newXp,
+            level: _calculateLevel(newXp),
+            referredBy: code,
+            referralSubmitted: true,
+          ),
+        );
+        NotificationService.showFeedback(
+          "Parrainage réussi !",
+          "+$refereeRewardCoins pièces et +$refereeRewardXp XP pour votre parrainage 🌟",
+        );
+        _saveAllToHive();
+        return 'ok';
+      }
+      return status is String ? status : 'invalid';
+    } catch (e) {
+      debugPrint('submitReferral : $e');
+      return 'offline';
+    }
+  }
+
+  Future<void> _applyServerRewards(List<dynamic> rewards) async {
+    final applied = _appliedRewardIds();
+    var coins = state.user.coins;
+    var freeze = state.user.streakFreezeDaysLeft;
+    var xp = state.user.globalXp;
+    final newlyApplied = <String>[];
+    var rewarded = false;
+
+    for (final raw in rewards) {
+      if (raw is! Map<String, dynamic>) continue;
+      final id = raw['reward_id'] ?? raw['id'];
+      if (id == null || applied.contains(id)) continue;
+
+      final coinsGain = (raw['coins'] ?? 0) as int;
+      final freezeGain = (raw['freeze_days'] ?? 0) as int;
+      final xpGain = (raw['xp'] ?? 0) as int;
+
+      coins = max(0, coins + coinsGain);
+      freeze += freezeGain;
+      xp = max(0, xp + xpGain);
+      newlyApplied.add(id);
+      rewarded = true;
+    }
+
+    if (!rewarded) return;
+
+    state = state.copyWith(
+      user: state.user.copyWith(
+        coins: coins,
+        streakFreezeDaysLeft: freeze,
+        globalXp: xp,
+        level: _calculateLevel(xp),
+      ),
+    );
+    NotificationService.showFeedback(
+      "Récompense de parrainage reçue !",
+      "+$referrerRewardCoins pièces, gel de série +$referrerRewardFreezeDays jours et +$referrerRewardXp XP 🎉",
+    );
+    await OfflineManager.saveData('applied_server_rewards', [...applied, ...newlyApplied]);
+    _saveAllToHive();
+  }
+
+  List<String> _appliedRewardIds() {
+    final saved = OfflineManager.getData('applied_server_rewards');
+    if (saved is List) {
+      return saved.map((e) => e.toString()).toList();
+    }
+    return const [];
   }
 
   void toggleQuestStatus(String questId) {

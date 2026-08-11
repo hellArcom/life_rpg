@@ -9,7 +9,6 @@ import '../widgets/celebration_overlay.dart';
 import '../widgets/character_preview.dart';
 import 'character_customization_screen.dart';
 import 'streak_milestones_screen.dart';
-import 'evening_entry_screen.dart';
 import 'evening_history_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -25,12 +24,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
-    final gameState = ref.watch(gameProvider);
-    final user = gameState.user;
-    final unlockedBadges = gameState.availableBadges.where((GameBadge b) => user.badgeIds.contains(b.id)).toList();
+    final user = ref.watch(gameProvider.select((s) => s.user));
+    final celebrationPending = ref.watch(gameProvider.select((s) => s.celebrationPending));
+    final allBadges = ref.watch(gameProvider.select((s) => s.availableBadges));
+    final quests = ref.watch(gameProvider.select((s) => s.quests));
+    final eveningLog = ref.watch(gameProvider.select((s) => s.eveningLog));
+    final unlockedBadges = allBadges.where((GameBadge b) => user.badgeIds.contains(b.id)).toList();
     final notifier = ref.read(gameProvider.notifier);
+    final gameState = GameState(
+      user: user,
+      skills: ref.read(gameProvider).skills,
+      quests: quests,
+      rewards: ref.read(gameProvider).rewards,
+      categories: ref.read(gameProvider).categories,
+      bets: ref.read(gameProvider).bets,
+      availableBadges: allBadges,
+      availableGuilds: ref.read(gameProvider).availableGuilds,
+      currentGuild: ref.read(gameProvider).currentGuild,
+      guildMessages: ref.read(gameProvider).guildMessages,
+      leaderboard: ref.read(gameProvider).leaderboard,
+      shopItems: ref.read(gameProvider).shopItems,
+      lootBoxes: ref.read(gameProvider).lootBoxes,
+      lootBoxProgress: ref.read(gameProvider).lootBoxProgress,
+      weeklyXpLog: ref.read(gameProvider).weeklyXpLog,
+      lastWeeklyLogWeekStart: ref.read(gameProvider).lastWeeklyLogWeekStart,
+      lastPenaltyDate: ref.read(gameProvider).lastPenaltyDate,
+      celebrationPending: celebrationPending,
+      eveningLog: eveningLog,
+    );
 
-    if (gameState.celebrationPending && !_celebrationShown) {
+    if (celebrationPending && !_celebrationShown) {
       _celebrationShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -178,11 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     notifier.canSubmitEveningEntry() ? '+10💰' : '✓ ${t.eveningDone}',
                     () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => notifier.canSubmitEveningEntry()
-                            ? const EveningEntryScreen()
-                            : const EveningHistoryScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const EveningHistoryScreen()),
                     ),
                   ),
                 ),

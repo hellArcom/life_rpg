@@ -28,9 +28,7 @@ class _EveningEntryScreenState extends ConsumerState<EveningEntryScreen> {
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
     final notifier = ref.read(gameProvider.notifier);
-    final canSubmit = notifier.canSubmitEveningEntry();
-
-    if (!canSubmit && !_submitted) _submitted = true;
+    final submitted = _submitted || !notifier.canSubmitEveningEntry();
 
     return Scaffold(
       appBar: AppBar(title: Text(t.eveningEntryTitle)),
@@ -46,7 +44,7 @@ class _EveningEntryScreenState extends ConsumerState<EveningEntryScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: _moods.map((m) => GestureDetector(
-                onTap: _submitted ? null : () => setState(() => _selectedMood = m),
+                onTap: submitted ? null : () => setState(() => _selectedMood = m),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.all(8),
@@ -64,8 +62,9 @@ class _EveningEntryScreenState extends ConsumerState<EveningEntryScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _controller,
-              enabled: !_submitted,
+              enabled: !submitted,
               maxLines: 4,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: t.eveningHint,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -75,17 +74,17 @@ class _EveningEntryScreenState extends ConsumerState<EveningEntryScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (_submitted || _controller.text.trim().isEmpty)
+                onPressed: (submitted || _controller.text.trim().isEmpty)
                     ? null
                     : () {
                         notifier.submitEveningEntry(_controller.text.trim(), _selectedMood);
                         setState(() => _submitted = true);
                       },
-                icon: Icon(_submitted ? Icons.check : Icons.send),
-                label: Text(_submitted ? t.eveningDone : t.eveningSubmit),
+                icon: Icon(submitted ? Icons.check : Icons.send),
+                label: Text(submitted ? t.eveningDone : t.eveningSubmit),
               ),
             ),
-            if (_submitted)
+            if (submitted)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Center(

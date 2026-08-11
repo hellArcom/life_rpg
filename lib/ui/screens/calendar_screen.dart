@@ -50,9 +50,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
-    final gameState = ref.watch(gameProvider);
-    final quests = gameState.quests;
-    final bets = gameState.bets;
+    final quests = ref.watch(gameProvider.select((s) => s.quests));
+    final bets = ref.watch(gameProvider.select((s) => s.bets));
 
     final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay, quests, bets);
     // Sort events by time

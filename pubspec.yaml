@@ -1,7 +1,7 @@
-name: life_rpg
-description: "Life RPG, https://liferpg.dpdns.org/"
+name: life_rpg_dev
+description: "Life RPG Dev , https://liferpg.dpdns.org/"
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.4.0
 
 environment:
   sdk: ^3.11.4
@@ -27,6 +27,7 @@ dependencies:
   share_plus: ^10.1.4
   table_calendar: ^3.1.2
   url_launcher: ^6.3.2
+  vibration: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -44,3 +45,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/sounds/
+    - assets/characters/

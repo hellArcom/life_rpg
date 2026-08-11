@@ -43,3 +43,23 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Données personnelles / sauvegardes locales
+life_rpg_backup.json
+
+# Notes de dev
+note.txt
+
+# Serveur + spec API (non publics)
+Life_RPG_serveur/
+SERVER_API.md
+
+# Build Android (release) + config Firebase (clés client)
+android/app/src/release/
+**/google-services.json
+
+# Fichier vide accidentel
+flutter
+
+# Préférences éditeur (chemins machine)
+.vscode/

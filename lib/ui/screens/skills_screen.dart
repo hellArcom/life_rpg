@@ -23,8 +23,7 @@ class SkillsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gameState = ref.watch(gameProvider);
-    final skills = gameState.skills;
+    final skills = ref.watch(gameProvider.select((s) => s.skills));
 
     return Scaffold(
       appBar: AppBar(
@@ -39,7 +38,7 @@ class SkillsScreen extends ConsumerWidget {
       body: ReorderableListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: skills.length,
-        onReorder: (oldIndex, newIndex) {
+        onReorderItem: (oldIndex, newIndex) {
           ref.read(gameProvider.notifier).reorderSkills(oldIndex, newIndex);
         },
         itemBuilder: (context, index) {

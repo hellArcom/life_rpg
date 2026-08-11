@@ -16,8 +16,8 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translationsProvider);
-    final gameState = ref.watch(gameProvider);
-    final categories = gameState.categories;
+    final quests = ref.watch(gameProvider.select((s) => s.quests));
+    final categories = ref.watch(gameProvider.select((s) => s.categories));
 
     return DefaultTabController(
       length: categories.length + 2,
@@ -36,13 +36,13 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
         ),
         body: TabBarView(
           children: [
-            _QuestList(quests: gameState.quests, onEdit: (q) => showAddQuestDialog(context, ref, initialCategory: q.category, existingQuest: q)),
+            _QuestList(quests: quests, onEdit: (q) => showAddQuestDialog(context, ref, initialCategory: q.category, existingQuest: q)),
             _QuestList(
-              quests: gameState.quests.where((q) => q.frequency == QuestFrequency.daily).toList(),
+              quests: quests.where((q) => q.frequency == QuestFrequency.daily).toList(),
               onEdit: (q) => showAddQuestDialog(context, ref, initialCategory: q.category, existingQuest: q),
             ),
             ...categories.map((cat) {
-              final categoryQuests = gameState.quests.where((q) => q.category.id == cat.id).toList();
+              final categoryQuests = quests.where((q) => q.category.id == cat.id).toList();
               return _QuestList(quests: categoryQuests, onEdit: (q) => showAddQuestDialog(context, ref, initialCategory: q.category, existingQuest: q));
             }),
           ],
@@ -77,7 +77,7 @@ class _QuestList extends ConsumerWidget {
     return ReorderableListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: quests.length,
-      onReorder: (oldIndex, newIndex) {
+      onReorderItem: (oldIndex, newIndex) {
         final questId = quests[oldIndex].id;
         final beforeQuestId = newIndex < quests.length ? quests[newIndex].id : null;
         ref.read(gameProvider.notifier).reorderQuests(questId, beforeQuestId);

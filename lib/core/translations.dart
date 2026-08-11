@@ -56,6 +56,27 @@ class Translations {
   String get settingsDesc => get('settingsDesc');
   String get export => get('export');
   String get import => get('import');
+
+  // Parrainage
+  String get referral => get('referral');
+  String get referralDesc => get('referralDesc');
+  String get myReferralCode => get('myReferralCode');
+  String get copy => get('copy');
+  String get share => get('share');
+  String get howReferralWorks => get('howReferralWorks');
+  String get referrerReward => get('referrerReward');
+  String get refereeReward => get('refereeReward');
+  String get freezeDays => get('freezeDays');
+  String get enterReferralCode => get('enterReferralCode');
+  String get validate => get('validate');
+  String get referralOfflineHint => get('referralOfflineHint');
+  String get referralOk => get('referralOk');
+  String get referralSelf => get('referralSelf');
+  String get referralAlreadyUsed => get('referralAlreadyUsed');
+  String get referralInvalid => get('referralInvalid');
+
+  // Mise à jour
+  String get updateAvailable => get('updateAvailable');
   
   // Settings
   String get appearance => get('appearance');
@@ -261,7 +282,7 @@ final Map<String, Map<String, String>> _translationsData = {
     'rewardClaimed': 'Récompensé',
     'eveningEntryTitle': 'Bilan du soir',
     'eveningEntrySubtitle': 'Notez votre journée et gagnez 10 pièces',
-    'eveningSubmit': 'Envoyer',
+    'eveningSubmit': 'Ajouter',
     'eveningDone': 'Fait ✓',
     'eveningAlreadyDone': 'Bilan du soir déjà envoyé aujourd\'hui !',
     'howAreYou': 'Comment te sens-tu ?',
@@ -278,6 +299,25 @@ final Map<String, Map<String, String>> _translationsData = {
     'outfitCategory': 'Tenue',
     'hatCategory': 'Chapeau',
     'accCategory': 'Accessoire',
+    // Parrainage
+    'referral': 'PARRAINAGE',
+    'referralDesc': 'Invitez des amis et gagnez des récompenses.',
+    'myReferralCode': 'MON CODE DE PARRAINAGE',
+    'copy': 'Copier',
+    'share': 'Partager',
+    'howReferralWorks': 'COMMENT ÇA MARCHE ?',
+    'referrerReward': 'Pour vous (parrain)',
+    'refereeReward': 'Pour votre ami (filleul)',
+    'freezeDays': 'gel de série',
+    'enterReferralCode': 'Entrer le code d\'un ami',
+    'validate': 'Valider',
+    'referralOfflineHint': 'Votre code rapporte +250💰 +3j de gel +300 XP à chaque ami qui l\'utilise.',
+    'referralOk': 'Parrainage validé ! +100 pièces et +100 XP pour vous.',
+    'referralSelf': 'Vous ne pouvez pas utiliser votre propre code.',
+    'referralAlreadyUsed': 'Vous avez déjà utilisé un code de parrainage.',
+    'referralInvalid': 'Ce code n\'existe pas.',
+    // Mise à jour
+    'updateAvailable': 'Mise à jour disponible',
   },
   'en': {
     'profile': 'Profile',
@@ -417,6 +457,25 @@ final Map<String, Map<String, String>> _translationsData = {
     'outfitCategory': 'Outfit',
     'hatCategory': 'Hat',
     'accCategory': 'Accessory',
+    // Referral
+    'referral': 'REFERRAL',
+    'referralDesc': 'Invite friends and earn rewards.',
+    'myReferralCode': 'MY REFERRAL CODE',
+    'copy': 'Copy',
+    'share': 'Share',
+    'howReferralWorks': 'HOW IT WORKS?',
+    'referrerReward': 'For you (referrer)',
+    'refereeReward': 'For your friend (referee)',
+    'freezeDays': 'streak freeze',
+    'enterReferralCode': 'Enter a friend\'s code',
+    'validate': 'Validate',
+    'referralOfflineHint': 'Your code gives +250🪙 +3d freeze +300 XP for each friend who uses it.',
+    'referralOk': 'Referral validated! +100 coins and +100 XP for you.',
+    'referralSelf': 'You cannot use your own code.',
+    'referralAlreadyUsed': 'You already used a referral code.',
+    'referralInvalid': 'This code does not exist.',
+    // Update
+    'updateAvailable': 'Update available',
   }
 };
 

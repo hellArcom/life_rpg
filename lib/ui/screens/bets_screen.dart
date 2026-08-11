@@ -30,9 +30,9 @@ class _BetsScreenState extends ConsumerState<BetsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameProvider);
-    final activeBets = gameState.bets.where((b) => b.status == BetStatus.active).toList();
-    final pastBets = gameState.bets.where((b) => b.status != BetStatus.active).toList();
+    final bets = ref.watch(gameProvider.select((s) => s.bets));
+    final activeBets = bets.where((b) => b.status == BetStatus.active).toList();
+    final pastBets = bets.where((b) => b.status != BetStatus.active).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('MES PARIS')),
