@@ -1,4 +1,4 @@
-package com.example.life_rpg
+package com.arcom.life_rpg
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -24,7 +24,7 @@ class QuestWidget : AppWidgetProvider() {
             coins: String?
         ) {
             val addIntent = Intent(context, MainActivity::class.java).apply {
-                action = "com.example.life_rpg.ADD_QUEST"
+                action = "com.arcom.life_rpg.ADD_QUEST"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val addPendingIntent = PendingIntent.getActivity(

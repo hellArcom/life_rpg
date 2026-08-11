@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/game_models.dart';
 
 class WidgetService {
-  static const _channel = MethodChannel('com.example.life_rpg/widget');
+  static const _channel = MethodChannel('com.arcom.life_rpg/widget');
 
   static Future<void> updateWidget({
     required int level,

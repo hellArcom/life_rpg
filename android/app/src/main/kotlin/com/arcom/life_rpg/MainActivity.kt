@@ -1,4 +1,4 @@
-package com.example.life_rpg
+package com.arcom.life_rpg
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -8,7 +8,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.example.life_rpg/widget"
+    private val CHANNEL = "com.arcom.life_rpg/widget"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -18,7 +18,7 @@ class MainActivity : FlutterActivity() {
                 "getInitialAction" -> {
                     val action = intent?.action
                     val questId = intent?.getStringExtra("quest_id")
-                    if (action == "com.example.life_rpg.TOGGLE_QUEST" && questId != null) {
+                    if (action == "com.arcom.life_rpg.TOGGLE_QUEST" && questId != null) {
                         result.success("TOGGLE_QUEST:$questId")
                     } else {
                         result.success(action)
@@ -84,34 +84,34 @@ class MainActivity : FlutterActivity() {
         val questId = intent.getStringExtra("quest_id")
 
         when {
-            action == "com.example.life_rpg.ADD_QUEST" -> {
+            action == "com.arcom.life_rpg.ADD_QUEST" -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
-                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.example.life_rpg.ADD_QUEST")
+                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.arcom.life_rpg.ADD_QUEST")
                 }
             }
-            action == "com.example.life_rpg.TOGGLE_QUEST" && questId != null -> {
+            action == "com.arcom.life_rpg.TOGGLE_QUEST" && questId != null -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
                     MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "TOGGLE_QUEST:$questId")
                 }
             }
-            action == "com.example.life_rpg.QUICK_ADD_EASY" -> {
+            action == "com.arcom.life_rpg.QUICK_ADD_EASY" -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
-                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.example.life_rpg.QUICK_ADD_EASY")
+                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.arcom.life_rpg.QUICK_ADD_EASY")
                 }
             }
-            action == "com.example.life_rpg.QUICK_ADD_MEDIUM" -> {
+            action == "com.arcom.life_rpg.QUICK_ADD_MEDIUM" -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
-                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.example.life_rpg.QUICK_ADD_MEDIUM")
+                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.arcom.life_rpg.QUICK_ADD_MEDIUM")
                 }
             }
-            action == "com.example.life_rpg.QUICK_ADD_HARD" -> {
+            action == "com.arcom.life_rpg.QUICK_ADD_HARD" -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
-                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.example.life_rpg.QUICK_ADD_HARD")
+                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.arcom.life_rpg.QUICK_ADD_HARD")
                 }
             }
-            action == "com.example.life_rpg.QUICK_ADD_LEGENDARY" -> {
+            action == "com.arcom.life_rpg.QUICK_ADD_LEGENDARY" -> {
                 flutterEngine?.dartExecutor?.binaryMessenger?.let {
-                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.example.life_rpg.QUICK_ADD_LEGENDARY")
+                    MethodChannel(it, CHANNEL).invokeMethod("triggerAction", "com.arcom.life_rpg.QUICK_ADD_LEGENDARY")
                 }
             }
         }

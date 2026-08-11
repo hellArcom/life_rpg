@@ -1,0 +1,1 @@
+Première publication F-Droid (0.4.0).

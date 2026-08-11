@@ -1,0 +1,30 @@
+Turn your real life into a role-playing game. Life RPG lets you define your own quests, complete them, and watch your hero grow as you build better habits.
+
+<b>Core gameplay</b>
+* Create quests with 4 difficulty levels: Easy, Medium, Hard and Legendary
+* Earn XP, coins and climb the ranks as you complete your tasks
+* Build daily streaks and unlock streak milestones
+* Level up your hero and unlock new titles
+
+<b>Your character</b>
+* Customize your hero: hair, eyes, mouth, outfits, hats and accessories
+* See your character evolve as your hero progresses
+
+<b>Stay motivated</b>
+* Android home screen widgets: current quest, hero progress, quick add, daily quests and a monthly calendar
+* Notifications and daily reminders to keep your habits on track
+* A monthly calendar to visualize your tasks
+
+<b>Deep gameplay systems</b>
+* A skill tree to specialize your hero
+* A shop to spend your coins
+* Guilds, a leaderboard and referral codes to play with friends
+* Optional bets to add stakes to your habits
+* Weekly summaries and statistics to follow your progress
+
+<b>Privacy first</b>
+* Everything is stored locally on your device
+* Optional synchronization with your own Life RPG server (self-hosted)
+* No ads, no trackers, no account required
+
+Life RPG is free and open source software (GPL-3.0).

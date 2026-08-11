@@ -7,8 +7,8 @@
         android:shortcutShortLabel="@string/shortcut_add_quest_short"
         android:shortcutLongLabel="@string/shortcut_add_quest_long">
         <intent
-            android:action="com.example.life_rpg.ADD_QUEST"
-            android:targetPackage="com.example.life_rpg"
-            android:targetClass="com.example.life_rpg.MainActivity" />
+            android:action="com.arcom.life_rpg.ADD_QUEST"
+            android:targetPackage="com.arcom.life_rpg"
+            android:targetClass="com.arcom.life_rpg.MainActivity" />
     </shortcut>
 </shortcuts>

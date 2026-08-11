@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color primaryGold = Color(0xFFFFD700);
@@ -15,7 +14,7 @@ class AppTheme {
         secondary: Colors.blueAccent,
         surface: surfaceDark,
       ),
-      textTheme: GoogleFonts.montserratTextTheme(ThemeData.dark().textTheme),
+      textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Montserrat'),
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundDark,
         elevation: 0,
@@ -39,7 +38,7 @@ class AppTheme {
         primary: primaryGold,
         secondary: secondaryBlue,
       ),
-      textTheme: GoogleFonts.montserratTextTheme(ThemeData.light().textTheme),
+      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Montserrat'),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
