@@ -10,8 +10,8 @@
 #   3. Update CurrentVersion/CurrentVersionCode to match.
 
 Categories:
-  - Time
-  - Games
+  - Habit Tracker
+  - Role-Playing Game
 License: GPL-3.0-only
 AuthorName: hellArcom
 SourceCode: https://github.com/hellArcom/life_rpg
@@ -26,7 +26,7 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: '0.4.0'
     versionCode: 1
-    commit: v0.4.0
+    commit: 64fbe1997ad8351c682cd7818b7054094a7149b3
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -37,7 +37,7 @@ Builds:
     prebuild:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
     scanignore:
       - $$flutter$$/bin/cache
     scandelete:
