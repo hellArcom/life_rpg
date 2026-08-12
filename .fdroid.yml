@@ -1,5 +1,6 @@
 # F-Droid build recipe for Life RPG.
-#
+# commit: targets the PROD merge 01ea3c1 (contains the pinned Flutter release
+#          workflow and the reproducible build path setup).
 # Flutter version is pinned in the app repo (.github/workflows/release.yml)
 # and checked out here via srclib, see templates/build-flutter.yml#L36-L38.
 # ABI version code scheme (android/app/build.gradle.kts):
