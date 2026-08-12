@@ -1,5 +1,6 @@
 # F-Droid build recipe for Life RPG.
-#
+# commit: targets the v0.4.0 tag = 05f8f4d (contains the pinned Flutter release
+#          workflow and the reproducible build path setup).
 # Flutter version is pinned in the app repo (.github/workflows/release.yml)
 # and checked out here via srclib, see templates/build-flutter.yml#L36-L38.
 # ABI version code scheme (android/app/build.gradle.kts):
@@ -23,7 +24,7 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 05f8f4d2b3a9461d890290fb75f1d9cf2c7335ef
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -62,7 +63,7 @@ Builds:
 
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 05f8f4d2b3a9461d890290fb75f1d9cf2c7335ef
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -101,7 +102,7 @@ Builds:
 
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 05f8f4d2b3a9461d890290fb75f1d9cf2c7335ef
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -139,11 +140,11 @@ Builds:
     binary: https://github.com/hellArcom/life_rpg/releases/download/v0.4.0/life_rpg-x86_64.apk
 
 # Signed per-ABI APKs are published on GitHub Releases (see
-# .github/workflows/release.yml) and used to verify the reproducible build,
-# see the "binary:" entries above. Compute the fingerprint below once from a
-# signed release APK (do not commit your keystore; keep it backed up offline):
-#   keytool -printcert -jarfile app-release.apk | sed -n 's/.*SHA256: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]'
-# AllowedAPKSigningKeys:
+# .github/workflows/release.yml) and used by F-Droid to verify the
+# reproducible build via the "binary:" entries above. The SHA-256 digest of
+# the release signing certificate (PKCS12 keystore, kept offline/backed up):
+AllowedAPKSigningKeys:
+  - d7da0aaf54f83d2723baa1ac4f007ac1f1eafe18a9744b3289d538b4383b91fb
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
