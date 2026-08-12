@@ -67,7 +67,7 @@ jobs:
       - name: Move to reproducible build path
         shell: bash
         run: |
-          sudo mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+          sudo mkdir -p /upstream/path/github.com/hellArcom
           sudo mv "$GITHUB_WORKSPACE" /upstream/path/github.com/hellArcom/life_rpg
           sudo chown -R "$USER":"$USER" /upstream/path
 
