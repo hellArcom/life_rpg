@@ -65,11 +65,13 @@ jobs:
 
       # Build in the same absolute path as F-Droid so the APKs are
       # byte-for-byte reproducible (see templates/build-flutter.yml).
-      - name: Move to reproducible build path
+      # The workspace is copied (not moved) to keep $GITHUB_WORKSPACE valid
+      # for the post-build steps.
+      - name: Prepare reproducible build path
         shell: bash
         run: |
           sudo mkdir -p /upstream/path/github.com/hellArcom
-          sudo mv "$GITHUB_WORKSPACE" /upstream/path/github.com/hellArcom/life_rpg
+          sudo cp -a "$GITHUB_WORKSPACE" /upstream/path/github.com/hellArcom/life_rpg
           sudo chown -R "$USER":"$USER" /upstream/path
 
       - name: Build signed APKs (split per ABI)
@@ -99,7 +101,6 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        working-directory: /upstream/path/github.com/hellArcom/life_rpg
         with:
           files: /upstream/path/github.com/hellArcom/life_rpg/artifacts/*.apk
           generate_release_notes: true
