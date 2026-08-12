@@ -88,9 +88,9 @@ jobs:
 
       - name: Stage release assets
         shell: bash
+        working-directory: /upstream/path/github.com/hellArcom/life_rpg
         run: |
           set -eu
-          cd /upstream/path/github.com/hellArcom/life_rpg
           mkdir -p artifacts
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "artifacts/life_rpg-armeabi-v7a.apk"
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "artifacts/life_rpg-arm64-v8a.apk"
@@ -98,6 +98,7 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        working-directory: /upstream/path/github.com/hellArcom/life_rpg
         with:
           files: /upstream/path/github.com/hellArcom/life_rpg/artifacts/*.apk
           generate_release_notes: true
