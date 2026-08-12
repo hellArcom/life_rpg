@@ -23,7 +23,7 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 01ea3c1e7f218bcfe591a189da0d607cac7ce82a
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -62,7 +62,7 @@ Builds:
 
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 01ea3c1e7f218bcfe591a189da0d607cac7ce82a
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -101,7 +101,7 @@ Builds:
 
   - versionName: 0.4.0
     versionCode: 1
-    commit: 89b717a8e7af1a57f12acd580a5922966d8ba5de
+    commit: 01ea3c1e7f218bcfe591a189da0d607cac7ce82a
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
