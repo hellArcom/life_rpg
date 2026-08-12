@@ -1,13 +1,10 @@
 # F-Droid build recipe for Life RPG.
 #
-# Used directly from this repo with `fdroid build` (see F-Droid docs,
-# "Running fdroid build in your app's source"). Also ready to be copied into
-# the fdroiddata repository as metadata/com.arcom.life_rpg.yml when submitting.
-#
-# Before F-Droid can build:
-#   1. Bump pubspec.yaml (version: x.y.z+N) and create a git tag vx.y.z.
-#   2. Update `commit` below to that tag.
-#   3. Update CurrentVersion/CurrentVersionCode to match.
+# Flutter version is pinned in the app repo (.github/workflows/release.yml)
+# and checked out here via srclib, see templates/build-flutter.yml#L36-L38.
+# ABI version code scheme (android/app/build.gradle.kts):
+#   versionCode = base * 10 + abi   armeabi-v7a=1, arm64-v8a=2, x86_64=3
+#   mirrored below with VercodeOperation.
 
 Categories:
   - Habit Tracker
@@ -26,33 +23,136 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: 0.4.0
     versionCode: 1
+    # TODO: set this to the full hash (or tag) of the commit that contains
+    # .github/workflows/release.yml (the current hash predates it).
     commit: 64fbe1997ad8351c682cd7818b7054094a7149b3
-    output: build/app/outputs/flutter-apk/app-release.apk
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
-      - flutter@221059e0b6
+      - flutter@stable
     rm:
       - ios
       - linux
       - windows
+    sudo:
+      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - chown -R vagrant /upstream/path
     prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - mv $repo com.arcom.life_rpg
     scanignore:
       - $$flutter$$/bin/cache
     scandelete:
       - .pub-cache
     build:
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
       - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
+      - mv $repo com.arcom.life_rpg
+    binary: https://github.com/hellArcom/life_rpg/releases/download/v0.4.0/life_rpg-armeabi-v7a.apk
 
-# If you publish signed APKs on GitHub Releases, set AllowedAPKSigningKeys to
-# the SHA-256 digest of your signing certificate:
+  - versionName: 0.4.0
+    versionCode: 1
+    commit: 64fbe1997ad8351c682cd7818b7054094a7149b3
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - linux
+      - windows
+    sudo:
+      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - chown -R vagrant /upstream/path
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - mv $repo com.arcom.life_rpg
+    scanignore:
+      - $$flutter$$/bin/cache
+    scandelete:
+      - .pub-cache
+    build:
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
+      - mv $repo com.arcom.life_rpg
+    binary: https://github.com/hellArcom/life_rpg/releases/download/v0.4.0/life_rpg-arm64-v8a.apk
+
+  - versionName: 0.4.0
+    versionCode: 1
+    commit: 64fbe1997ad8351c682cd7818b7054094a7149b3
+    output: build/app/outputs/flutter-apk/app-x86_64-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - linux
+      - windows
+    sudo:
+      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - chown -R vagrant /upstream/path
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - mv $repo com.arcom.life_rpg
+    scanignore:
+      - $$flutter$$/bin/cache
+    scandelete:
+      - .pub-cache
+    build:
+      - export repo=/upstream/path/github.com/hellArcom/life_rpg
+      - cd ..
+      - mv com.arcom.life_rpg $repo
+      - pushd $repo
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
+      - mv $repo com.arcom.life_rpg
+    binary: https://github.com/hellArcom/life_rpg/releases/download/v0.4.0/life_rpg-x86_64.apk
+
+# Signed per-ABI APKs are published on GitHub Releases (see
+# .github/workflows/release.yml) and used to verify the reproducible build,
+# see the "binary:" entries above. Compute the fingerprint below once from a
+# signed release APK (do not commit your keystore; keep it backed up offline):
 #   keytool -printcert -jarfile app-release.apk | sed -n 's/.*SHA256: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]'
 # AllowedAPKSigningKeys:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
+VercodeOperation:
+  - 10 * %c + 1
+  - 10 * %c + 2
+  - 10 * %c + 3
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 CurrentVersion: 0.4.0
 CurrentVersionCode: 1
