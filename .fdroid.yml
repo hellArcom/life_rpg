@@ -32,7 +32,7 @@ Builds:
       - linux
       - windows
     sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - mkdir -p /upstream/path/github.com/hellArcom
       - chown -R vagrant /upstream/path
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
@@ -71,7 +71,7 @@ Builds:
       - linux
       - windows
     sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - mkdir -p /upstream/path/github.com/hellArcom
       - chown -R vagrant /upstream/path
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
@@ -110,7 +110,7 @@ Builds:
       - linux
       - windows
     sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom/life_rpg
+      - mkdir -p /upstream/path/github.com/hellArcom
       - chown -R vagrant /upstream/path
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
