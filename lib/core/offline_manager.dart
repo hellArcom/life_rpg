@@ -33,10 +33,20 @@ class OfflineManager {
     final data = box.get(key);
     if (data == null) return null;
     
+    // Try to decode JSON; if failed, restore from backup
     if (data is String) {
       try {
         return jsonDecode(data);
       } catch (e) {
+        // Corrupted JSON: try restore from backup
+        final backup = box.get('game_data_backup');
+        if (backup != null) {
+          try {
+            return jsonDecode(backup is String ? backup : jsonEncode(backup));
+          } catch (_) {
+            // Backup also corrupted
+          }
+        }
         return null;
       }
     }

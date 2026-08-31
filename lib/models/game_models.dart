@@ -4,6 +4,17 @@
 
 import 'dart:ui' show Color;
 
+/// Parse une valeur d'enum de façon sûre : renvoie [fallback] si la chaîne ne
+/// correspond à aucune valeur connue (évite les crash `byName` sur données
+/// inattendues du serveur).
+T enumFromString<T extends Enum>(List<T> values, String? name, T fallback) {
+  if (name == null) return fallback;
+  for (final v in values) {
+    if (v.name == name) return v;
+  }
+  return fallback;
+}
+
 enum Difficulty {
   easy,
   medium,
@@ -16,6 +27,55 @@ enum Difficulty {
     Difficulty.hard => 400,
     Difficulty.legendary => 1000,
   };
+}
+
+enum GuildRole {
+  member,
+  sub_chief,
+  chief;
+  
+  int get rank => switch (this) {
+    GuildRole.member => 0,
+    GuildRole.sub_chief => 1,
+    GuildRole.chief => 2,
+  };
+  
+  String get label => switch (this) {
+    GuildRole.member => 'Membre',
+    GuildRole.sub_chief => 'Sous-chef',
+    GuildRole.chief => 'Chef',
+  };
+}
+
+enum GuildJoinType {
+  open,
+  criteria,
+  private;
+  
+  String get label => switch (this) {
+    GuildJoinType.open => 'Ouverte',
+    GuildJoinType.criteria => 'Sur critère',
+    GuildJoinType.private => 'Privée',
+  };
+}
+
+enum GuildQuestStatus {
+  active,
+  completed,
+  cancelled;
+}
+
+enum GuildLogActionType {
+  join,
+  leave,
+  kick,
+  promote,
+  demote,
+  transfer,
+  update,
+  invite_accepted,
+  quest_completed,
+  quest_created;
 }
 
 class SkillCategory {
@@ -429,7 +489,7 @@ class Bet {
     createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     rewardXp: json['rewardXp'] ?? 100,
     penaltyXp: json['penaltyXp'] ?? 50,
-    status: BetStatus.values.byName(json['status'] ?? 'active'),
+    status: enumFromString(BetStatus.values, json['status'], BetStatus.active),
   );
 }
 
@@ -517,10 +577,10 @@ class Quest {
     id: json['id'],
     title: json['title'],
     description: json['description'] ?? '',
-    difficulty: Difficulty.values.byName(json['difficulty'] ?? 'easy'),
+    difficulty: enumFromString(Difficulty.values, json['difficulty'], Difficulty.easy),
     category: SkillCategory.fromJson(json['category']),
-    status: QuestStatus.values.byName(json['status'] ?? 'todo'),
-    frequency: QuestFrequency.values.byName(json['frequency'] ?? 'once'),
+    status: enumFromString(QuestStatus.values, json['status'], QuestStatus.todo),
+    frequency: enumFromString(QuestFrequency.values, json['frequency'], QuestFrequency.once),
     lastCompletedDate: json['lastCompletedDate'] != null ? DateTime.parse(json['lastCompletedDate']) : null,
     reminderDate: json['reminderDate'] != null ? DateTime.parse(json['reminderDate']) : null,
     startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : null,
@@ -566,63 +626,354 @@ class Guild {
   final String id;
   final String name;
   final String description;
-  final List<String> memberUids;
+  final String? logoUrl;
+  final GuildJoinType joinType;
+  final int minLevel;
+  final int maxMembers;
+  final String? encryptionKey;
+  final List<GuildMember> members;
   final int totalXp;
   final int level;
+  final int memberCount;
+  final double avgLevel;
+  final String? myRole;
 
   Guild({
     required this.id,
     required this.name,
     required this.description,
-    this.memberUids = const [],
+    this.logoUrl,
+    this.joinType = GuildJoinType.open,
+    this.minLevel = 0,
+    this.maxMembers = 50,
+    this.encryptionKey,
+    this.members = const [],
     this.totalXp = 0,
     this.level = 1,
-  });
+    this.avgLevel = 0.0,
+    int? memberCount,
+    this.myRole,
+  }) : memberCount = memberCount ?? members.length;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'description': description,
-    'memberUids': memberUids,
+    'logoUrl': logoUrl,
+    'joinType': joinType.name,
+    'minLevel': minLevel,
+    'maxMembers': maxMembers,
+    'encryptionKey': encryptionKey,
+    'members': members.map((m) => m.toJson()).toList(),
     'totalXp': totalXp,
     'level': level,
+    'avgLevel': avgLevel,
+    'memberCount': memberCount,
+    'my_role': myRole,
   };
 
   factory Guild.fromJson(Map<String, dynamic> json) => Guild(
-    id: json['id'],
-    name: json['name'],
+    id: json['id'].toString(),
+    name: json['name'] ?? '',
     description: json['description'] ?? '',
-    memberUids: List<String>.from(json['memberUids'] ?? []),
-    totalXp: json['totalXp'] ?? 0,
+    logoUrl: json['logoUrl'] ?? json['logo_url'],
+    joinType: enumFromString(GuildJoinType.values, json['joinType'] ?? json['join_type'], GuildJoinType.open),
+    minLevel: json['minLevel'] ?? json['min_level'] ?? 0,
+    maxMembers: json['maxMembers'] ?? json['max_members'] ?? 50,
+    encryptionKey: json['encryptionKey'] ?? json['encryption_key'],
+    members: (json['members'] as List<dynamic>?)
+        ?.map((m) => GuildMember.fromJson(m as Map<String, dynamic>))
+        .toList() ?? [],
+    totalXp: json['totalXp'] ?? json['total_xp'] ?? 0,
     level: json['level'] ?? 1,
+    avgLevel: (json['avg_level'] ?? json['avgLevel'] ?? 0.0).toDouble(),
+    memberCount: json['member_count'] ?? json['memberCount'],
+    myRole: json['my_role'],
+  );
+
+  Guild copyWith({
+    String? name,
+    String? description,
+    String? logoUrl,
+    GuildJoinType? joinType,
+    int? minLevel,
+    int? maxMembers,
+    String? encryptionKey,
+    List<GuildMember>? members,
+    int? totalXp,
+    int? level,
+  }) {
+    return Guild(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      logoUrl: logoUrl ?? this.logoUrl,
+      joinType: joinType ?? this.joinType,
+      minLevel: minLevel ?? this.minLevel,
+      maxMembers: maxMembers ?? this.maxMembers,
+      encryptionKey: encryptionKey ?? this.encryptionKey,
+      members: members ?? this.members,
+      totalXp: totalXp ?? this.totalXp,
+      level: level ?? this.level,
+    );
+  }
+
+GuildMember? getMember(String uid) {
+    try {
+      return members.firstWhere((m) => m.uid == uid);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get hasChief => members.any((m) => m.role == GuildRole.chief);
+}
+
+class GuildMember {
+  final String uid;
+  final String pseudo;
+  final int level;
+  final int xp;
+  final GuildRole role;
+  final DateTime joinedAt;
+  final String? avatarUrl;
+
+  GuildMember({
+    required this.uid,
+    required this.pseudo,
+    required this.level,
+    required this.xp,
+    required this.role,
+    required this.joinedAt,
+    this.avatarUrl,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'uid': uid,
+    'pseudo': pseudo,
+    'level': level,
+    'xp': xp,
+    'role': role.name,
+    'joinedAt': joinedAt.toIso8601String(),
+    'avatarUrl': avatarUrl,
+  };
+
+  factory GuildMember.fromJson(Map<String, dynamic> json) => GuildMember(
+    uid: (json['id'] ?? json['uid'])?.toString() ?? '',
+    pseudo: json['username'] ?? json['pseudo'],
+    level: json['level'] ?? 1,
+    xp: json['xp'] ?? 0,
+    role: GuildRole.values
+        .where((r) => r.name == (json['role'] ?? 'member'))
+        .firstOrNull ?? GuildRole.member,
+    joinedAt: json['joinedAt'] != null
+        ? DateTime.parse(json['joinedAt'])
+        : DateTime.now(),
+    avatarUrl: json['avatarUrl'],
+  );
+}
+
+class GuildInvitation {
+  final String id;
+  final String guildId;
+  final String guildName;
+  final String inviterUid;
+  final String inviterPseudo;
+  final String inviteeUid;
+  final String inviteePseudo;
+  final String status; // pending, accepted, declined, cancelled
+  final DateTime createdAt;
+
+  GuildInvitation({
+    required this.id,
+    required this.guildId,
+    required this.guildName,
+    required this.inviterUid,
+    required this.inviterPseudo,
+    required this.inviteeUid,
+    required this.inviteePseudo,
+    required this.status,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'guildId': guildId,
+    'guildName': guildName,
+    'inviterUid': inviterUid,
+    'inviterPseudo': inviterPseudo,
+    'inviteeUid': inviteeUid,
+    'inviteePseudo': inviteePseudo,
+    'status': status,
+    'createdAt': createdAt.toIso8601String(),
+  };
+
+  factory GuildInvitation.fromJson(Map<String, dynamic> json) => GuildInvitation(
+    id: json['id'].toString(),
+    guildId: (json['guildId'] ?? json['guild_id'] ?? '').toString(),
+    guildName: json['guildName'] ?? json['guild_name'] ?? '',
+    inviterUid: (json['inviterUid'] ?? json['inviter_id'] ?? '').toString(),
+    inviterPseudo: json['inviterPseudo'] ?? json['inviter_name'] ?? '',
+    inviteeUid: (json['inviteeUid'] ?? json['invitee_id'] ?? '').toString(),
+    inviteePseudo: json['inviteePseudo'] ?? json['invitee_name'] ?? '',
+    status: json['status'] ?? 'pending',
+    createdAt: json['createdAt'] != null
+        ? DateTime.parse(json['createdAt'])
+        : json['created_at'] != null
+            ? DateTime.parse(json['created_at'])
+            : DateTime.now(),
+  );
+}
+
+class GuildQuest {
+  final String id;
+  final String guildId;
+  final String title;
+  final String description;
+  final int xpReward;
+  final int coinReward;
+  final String creatorUid;
+  final String creatorPseudo;
+  final GuildQuestStatus status;
+  final DateTime createdAt;
+  final DateTime? completedAt;
+
+  GuildQuest({
+    required this.id,
+    required this.guildId,
+    required this.title,
+    required this.description,
+    required this.xpReward,
+    required this.coinReward,
+    required this.creatorUid,
+    required this.creatorPseudo,
+    this.status = GuildQuestStatus.active,
+    required this.createdAt,
+    this.completedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'guildId': guildId,
+    'title': title,
+    'description': description,
+    'xpReward': xpReward,
+    'coinReward': coinReward,
+    'creatorUid': creatorUid,
+    'creatorPseudo': creatorPseudo,
+    'status': status.name,
+    'createdAt': createdAt.toIso8601String(),
+    'completedAt': completedAt?.toIso8601String(),
+  };
+
+  factory GuildQuest.fromJson(Map<String, dynamic> json) => GuildQuest(
+    id: json['id'].toString(),
+    guildId: (json['guildId'] ?? json['guild_id'] ?? '').toString(),
+    title: json['title'] ?? '',
+    description: json['description'] ?? '',
+    xpReward: json['xpReward'] ?? json['xp_reward'] ?? 0,
+    coinReward: json['coinReward'] ?? json['coin_reward'] ?? 0,
+    creatorUid: (json['creatorUid'] ?? json['creator_id'] ?? '').toString(),
+    creatorPseudo: json['creatorPseudo'] ?? json['creator_name'] ?? '',
+    status: enumFromString(GuildQuestStatus.values, json['status'], GuildQuestStatus.active),
+    createdAt: json['createdAt'] != null
+        ? DateTime.parse(json['createdAt'])
+        : json['created_at'] != null
+            ? DateTime.parse(json['created_at'])
+            : DateTime.now(),
+    completedAt: json['completedAt'] != null
+        ? DateTime.parse(json['completedAt'])
+        : json['completed_at'] != null
+            ? DateTime.parse(json['completed_at'])
+            : null,
+  );
+}
+
+class GuildLog {
+  final String id;
+  final String guildId;
+  final String actorUid;
+  final String actorPseudo;
+  final GuildLogActionType actionType;
+  final Map<String, dynamic> details;
+  final DateTime timestamp;
+
+  GuildLog({
+    required this.id,
+    required this.guildId,
+    required this.actorUid,
+    required this.actorPseudo,
+    required this.actionType,
+    required this.details,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'guildId': guildId,
+    'actorUid': actorUid,
+    'actorPseudo': actorPseudo,
+    'actionType': actionType.name,
+    'details': details,
+    'timestamp': timestamp.toIso8601String(),
+  };
+
+  factory GuildLog.fromJson(Map<String, dynamic> json) => GuildLog(
+    id: json['id'].toString(),
+    guildId: (json['guildId'] ?? json['guild_id'] ?? '').toString(),
+    actorUid: (json['actorUid'] ?? json['actor_id'] ?? '').toString(),
+    actorPseudo: json['actorPseudo'] ?? json['actor_name'] ?? '',
+    actionType: enumFromString(GuildLogActionType.values, json['actionType'] ?? json['action_type'], GuildLogActionType.join),
+    details: Map<String, dynamic>.from(json['details'] ?? {}),
+    timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
   );
 }
 
 class ChatMessage {
   final String id;
   final String senderName;
+  final String senderId;
   final String text;
   final DateTime timestamp;
+  final String? room;
+  final bool isEncrypted;
+  final bool deleted;
+  final DateTime? deletedAt;
 
   ChatMessage({
     required this.id,
     required this.senderName,
+    required this.senderId,
     required this.text,
     required this.timestamp,
+    this.room,
+    this.isEncrypted = false,
+    this.deleted = false,
+    this.deletedAt,
   });
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'senderName': senderName,
+    'senderId': senderId,
     'text': text,
     'timestamp': timestamp.toIso8601String(),
+    'room': room,
+    'isEncrypted': isEncrypted,
+    'deleted': deleted,
+    'deletedAt': deletedAt?.toIso8601String(),
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-    id: json['id'],
+    id: json['id']?.toString() ?? '',
     senderName: json['senderName'],
+    senderId: json['senderId'] ?? '',
     text: json['text'],
     timestamp: DateTime.parse(json['timestamp']),
+    room: json['room'],
+    isEncrypted: json['isEncrypted'] ?? false,
+    deleted: json['deleted'] ?? false,
+    deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt']) : null,
   );
 }
 

@@ -15,6 +15,7 @@ import 'bets_screen.dart';
 import 'others_screen.dart';
 import 'shop_screen.dart';
 import 'weekly_summary_screen.dart';
+import 'guilds_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -135,6 +136,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         CalendarScreen(),
         SkillsScreen(),
         BetsScreen(),
+        GuildsScreen(),
         OthersScreen(),
       ]),
       bottomNavigationBar: BottomNavigationBar(
@@ -147,6 +149,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           BottomNavigationBarItem(icon: const Icon(Icons.calendar_month), label: t.calendar),
           BottomNavigationBarItem(icon: const Icon(Icons.trending_up), label: t.skills),
           BottomNavigationBarItem(icon: const Icon(Icons.casino), label: t.bets),
+          BottomNavigationBarItem(icon: const Icon(Icons.shield), label: t.guilds),
           BottomNavigationBarItem(icon: const Icon(Icons.more_horiz), label: t.others),
         ],
       ),

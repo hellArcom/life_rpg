@@ -1,15 +1,44 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart'; 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 import '../models/game_models.dart'; 
 import '../services/audio_service.dart';
 import '../services/notification_service.dart';
 import '../services/server_service.dart';
+import '../services/chat_service.dart';
 import '../services/widget_service.dart';
 import '../core/offline_manager.dart';
 import '../core/data_migration.dart';
 import '../core/utils.dart';
+
+Object _unset = Object();
+
+bool _chatSocketBound = false;
+String? _activeGuildId;
+
+ChatMessage _chatMessageFromSocket(Map<String, dynamic> data, String guildId) {
+  DateTime ts;
+  final raw = data['timestamp'] as String?;
+  if (raw != null && RegExp(r'^\d{1,2}:\d{2}$').hasMatch(raw)) {
+    final parts = raw.split(':');
+    final now = DateTime.now();
+    ts = DateTime(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
+  } else {
+    ts = DateTime.now();
+  }
+  return ChatMessage(
+    id: data['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+    senderId: data['sender_id']?.toString() ?? '',
+    senderName: data['sender_name'] as String? ?? '?',
+    text: data['content'] as String? ?? '',
+    timestamp: ts,
+    room: data['room'] as String? ?? 'guild_$guildId',
+    deleted: data['deleted'] as bool? ?? false,
+  );
+}
 
 class GameState {
   final UserProfile user;
@@ -21,6 +50,12 @@ class GameState {
   final List<GameBadge> availableBadges;
   final Guild? currentGuild;
   final List<Guild> availableGuilds;
+  final List<Guild> myGuilds;
+  final List<Guild> guildLeaderboard;
+  final List<GuildMember> guildMembers;
+  final List<GuildInvitation> guildInvitations;
+  final List<GuildQuest> guildQuests;
+  final List<GuildLog> guildLogs;
   final List<ChatMessage> guildMessages;
   final List<LeaderboardEntry> leaderboard;
   final List<ShopItem> shopItems;
@@ -32,6 +67,8 @@ class GameState {
   final bool celebrationPending;
   final List<EveningEntry> eveningLog;
   final int dataVersion;
+  final bool isAccountLinked;
+  final Map<String, String> guildEncryptionKeys;
 
   GameState({
     required this.user,
@@ -39,10 +76,15 @@ class GameState {
     required this.quests,
     required this.rewards,
     required this.categories,
-    this.bets = const [],
-    this.availableBadges = const [],
-    this.currentGuild,
+    required this.bets,
+    required this.availableBadges,
+    currentGuild,
     this.availableGuilds = const [],
+    this.myGuilds = const [],
+    this.guildMembers = const [],
+    this.guildInvitations = const [],
+    this.guildQuests = const [],
+    this.guildLogs = const [],
     this.guildMessages = const [],
     this.leaderboard = const [],
     this.shopItems = const [],
@@ -53,10 +95,13 @@ class GameState {
     this.lastPenaltyDate,
     this.celebrationPending = false,
     this.eveningLog = const [],
+    this.guildLeaderboard = const [],
     this.dataVersion = 0,
-  });
+    this.isAccountLinked = false,
+    this.guildEncryptionKeys = const {},
+  }) : currentGuild = currentGuild;
 
-  GameState copyWith({
+GameState copyWith({
     UserProfile? user,
     List<Skill>? skills,
     List<Quest>? quests,
@@ -65,7 +110,14 @@ class GameState {
     List<Bet>? bets,
     List<GameBadge>? availableBadges,
     Guild? currentGuild,
+    bool? clearCurrentGuild,
     List<Guild>? availableGuilds,
+    List<Guild>? myGuilds,
+    List<Guild>? guildLeaderboard,
+    List<GuildMember>? guildMembers,
+    List<GuildInvitation>? guildInvitations,
+    List<GuildQuest>? guildQuests,
+    List<GuildLog>? guildLogs,
     List<ChatMessage>? guildMessages,
     List<LeaderboardEntry>? leaderboard,
     List<ShopItem>? shopItems,
@@ -77,6 +129,8 @@ class GameState {
     bool? celebrationPending,
     List<EveningEntry>? eveningLog,
     int? dataVersion,
+    bool? isAccountLinked,
+    Map<String, String>? guildEncryptionKeys,
   }) {
     return GameState(
       user: user ?? this.user,
@@ -86,8 +140,14 @@ class GameState {
       categories: categories ?? this.categories,
       bets: bets ?? this.bets,
       availableBadges: availableBadges ?? this.availableBadges,
-      currentGuild: currentGuild ?? this.currentGuild,
+      currentGuild: clearCurrentGuild == true ? null : (currentGuild ?? (this.currentGuild == _unset ? null : this.currentGuild)),
       availableGuilds: availableGuilds ?? this.availableGuilds,
+      myGuilds: myGuilds ?? this.myGuilds,
+      guildLeaderboard: guildLeaderboard ?? this.guildLeaderboard,
+      guildMembers: guildMembers ?? this.guildMembers,
+      guildInvitations: guildInvitations ?? this.guildInvitations,
+      guildQuests: guildQuests ?? this.guildQuests,
+      guildLogs: guildLogs ?? this.guildLogs,
       guildMessages: guildMessages ?? this.guildMessages,
       leaderboard: leaderboard ?? this.leaderboard,
       shopItems: shopItems ?? this.shopItems,
@@ -99,6 +159,8 @@ class GameState {
       celebrationPending: celebrationPending ?? this.celebrationPending,
       eveningLog: eveningLog ?? this.eveningLog,
       dataVersion: dataVersion ?? this.dataVersion,
+      isAccountLinked: isAccountLinked ?? this.isAccountLinked,
+      guildEncryptionKeys: guildEncryptionKeys ?? this.guildEncryptionKeys,
     );
   }
 
@@ -119,10 +181,18 @@ class GameState {
     'celebrationPending': false,
     'eveningLog': eveningLog.map((e) => e.toJson()).toList(),
     'dataVersion': dataVersion,
+    'isAccountLinked': isAccountLinked,
     'currentGuild': currentGuild?.toJson(),
     'availableGuilds': availableGuilds.map((g) => g.toJson()).toList(),
+    'myGuilds': myGuilds.map((g) => g.toJson()).toList(),
+    'guildLeaderboard': guildLeaderboard.map((g) => g.toJson()).toList(),
+    'guildMembers': guildMembers.map((m) => m.toJson()).toList(),
+    'guildInvitations': guildInvitations.map((i) => i.toJson()).toList(),
+    'guildQuests': guildQuests.map((q) => q.toJson()).toList(),
+    'guildLogs': guildLogs.map((l) => l.toJson()).toList(),
     'guildMessages': guildMessages.map((m) => m.toJson()).toList(),
     'leaderboard': leaderboard.map((l) => l.toJson()).toList(),
+    'guildEncryptionKeys': guildEncryptionKeys,
   };
 
   factory GameState.fromJson(Map<String, dynamic> json) {
@@ -151,10 +221,18 @@ class GameState {
       celebrationPending: false,
       eveningLog: (json['eveningLog'] as List<dynamic>?)?.map((e) => EveningEntry.fromJson(e)).toList() ?? [],
       dataVersion: json['dataVersion'] ?? 0,
+      isAccountLinked: json['isAccountLinked'] ?? false,
       currentGuild: json['currentGuild'] != null ? Guild.fromJson(json['currentGuild']) : null,
       availableGuilds: (json['availableGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
+      myGuilds: (json['myGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
+      guildLeaderboard: (json['guildLeaderboard'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
+      guildMembers: (json['guildMembers'] as List<dynamic>?)?.map((m) => GuildMember.fromJson(m)).toList() ?? [],
+      guildInvitations: (json['guildInvitations'] as List<dynamic>?)?.map((i) => GuildInvitation.fromJson(i)).toList() ?? [],
+      guildQuests: (json['guildQuests'] as List<dynamic>?)?.map((q) => GuildQuest.fromJson(q)).toList() ?? [],
+      guildLogs: (json['guildLogs'] as List<dynamic>?)?.map((l) => GuildLog.fromJson(l)).toList() ?? [],
       guildMessages: (json['guildMessages'] as List<dynamic>?)?.map((m) => ChatMessage.fromJson(m)).toList() ?? [],
       leaderboard: (json['leaderboard'] as List<dynamic>?)?.map((l) => LeaderboardEntry.fromJson(l)).toList() ?? [],
+      guildEncryptionKeys: (json['guildEncryptionKeys'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as String)) ?? {},
     );
   }
 
@@ -253,50 +331,74 @@ class GameNotifier extends Notifier<GameState> {
     LootBox(id: 'box_gold', name: 'Coffre Or', icon: '🏆', questsRequired: 15, possibleBadgeIds: ['loot_15', 'coins_300']),
   ];
 
-  void _saveAllToHive() {
-    try {
-      OfflineManager.saveData('game_data', state.toJson());
+  Timer? _saveTimer;
+  int _saveCounter = 0;
 
-      final user = state.user;
-      WidgetService.updateWidget(
-        level: user.level,
-        streak: user.streak,
-        coins: user.coins,
-      );
+  void _saveAllToHive({bool force = false}) {
+    _saveCounter++;
+    _saveTimer?.cancel();
+    // Debounce: save after 500ms of no mutations, or immediately if forced
+    final delay = force ? Duration.zero : const Duration(milliseconds: 500);
+    _saveTimer = Timer(delay, () {
+      try {
+        OfflineManager.saveData('game_data', state.toJson());
 
-      final xpForCurrent = (user.level - 1) * (user.level - 1) * 100;
-      final xpForNext = user.level * user.level * 100;
-      WidgetService.updateProgressWidget(
-        level: user.level,
-        xp: user.globalXp,
-        xpForCurrent: xpForCurrent,
-        xpForNext: xpForNext,
-        streak: user.streak,
-        coins: user.coins,
-        title: user.currentTitle,
-      );
+        final user = state.user;
+        WidgetService.updateWidget(
+          level: user.level,
+          streak: user.streak,
+          coins: user.coins,
+        );
 
-      final now = DateTime.now();
-      final todayQuests = state.quests.where((q) {
-        if (q.frequency == QuestFrequency.daily) return true;
-        if (q.dueDate != null &&
-            q.dueDate!.year == now.year &&
-            q.dueDate!.month == now.month &&
-            q.dueDate!.day == now.day) {
-          return true;
+        final xpForCurrent = (user.level - 1) * (user.level - 1) * 100;
+        final xpForNext = user.level * user.level * 100;
+        WidgetService.updateProgressWidget(
+          level: user.level,
+          xp: user.globalXp,
+          xpForCurrent: xpForCurrent,
+          xpForNext: xpForNext,
+          streak: user.streak,
+          coins: user.coins,
+          title: user.currentTitle,
+        );
+
+        final now = DateTime.now();
+        final todayQuests = state.quests.where((q) {
+          if (q.frequency == QuestFrequency.daily) return true;
+          if (q.dueDate != null &&
+              q.dueDate!.year == now.year &&
+              q.dueDate!.month == now.month &&
+              q.dueDate!.day == now.day) {
+            return true;
+          }
+          return false;
+        }).toList();
+        final dailyQuests = todayQuests.where((q) => q.frequency == QuestFrequency.daily).take(5).toList();
+        WidgetService.updateDailyQuestsWidget(dailyQuests);
+        WidgetService.updateCalendarWidget(
+          year: now.year,
+          month: now.month,
+          todayDay: now.day,
+          quests: todayQuests,
+        );
+
+        // Periodic Hive compaction (every 50 saves)
+        if (_saveCounter % 50 == 0) {
+          _compactHive();
         }
-        return false;
-      }).toList();
-      final dailyQuests = todayQuests.where((q) => q.frequency == QuestFrequency.daily).take(5).toList();
-      WidgetService.updateDailyQuestsWidget(dailyQuests);
-      WidgetService.updateCalendarWidget(
-        year: now.year,
-        month: now.month,
-        todayDay: now.day,
-        quests: todayQuests,
-      );
+      } catch (e) {
+        debugPrint("Erreur lors de la sauvegarde Hive: $e");
+      }
+    });
+  }
+
+  Future<void> _compactHive() async {
+    try {
+      final box = Hive.box('game_data');
+      await box.compact();
+      debugPrint('Hive compaction completed');
     } catch (e) {
-      debugPrint("Erreur lors de la sauvegarde Hive: $e");
+      debugPrint('Hive compaction failed: $e');
     }
   }
 
@@ -743,8 +845,25 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
+  /// XP/coins reward cap for a bet, based on the linked quests' base difficulty.
+  /// Prevents betting millions of XP on a single easy quest: max reward = 3x
+  /// the sum of the linked quests' difficulty xpBase.
+  static const int betXpMultiplier = 3;
+
+  int maxBetRewardXp(List<String> linkedQuestIds) {
+    if (linkedQuestIds.isEmpty) return 300;
+    final linked = state.quests.where((q) => linkedQuestIds.contains(q.id));
+    if (linked.isEmpty) return 300;
+    return linked.fold(0, (sum, q) => sum + q.difficulty.xpBase * betXpMultiplier);
+  }
+
   void addBet(Bet bet) {
-    state = state.copyWith(bets: [...state.bets, bet]);
+    final cap = maxBetRewardXp(bet.linkedQuestIds);
+    final clamped = bet.copyWith(
+      rewardXp: bet.rewardXp.clamp(0, cap),
+      penaltyXp: bet.penaltyXp.clamp(0, cap),
+    );
+    state = state.copyWith(bets: [...state.bets, clamped]);
     _saveAllToHive();
     NotificationService.scheduleQuestReminder(bet.id, "Pari: ${bet.title}", bet.deadline);
   }
@@ -882,23 +1001,117 @@ class GameNotifier extends Notifier<GameState> {
     return code;
   }
 
+  Future<void> checkAccountLinkStatus() async {
+    final status = await ServerService.getSyncStatus();
+    if (status != null) {
+      final linked = status['linked'] == true;
+      if (state.isAccountLinked != linked) {
+        state = state.copyWith(isAccountLinked: linked);
+        _saveAllToHive();
+      }
+    }
+  }
+
   /// Synchronisation au lancement : enregistre l'app + ping + applique les
-  /// récompenses de parrainage en attente. 100% silencieux hors-ligne.
-  Future<void> syncWithServer() async {
+  /// récompenses de parrainage en attente + synchronise les données de compte.
+  Future<void> syncWithServer({String mode = 'merge'}) async {
     try {
       final code = ensureReferralCode();
       if (!await ServerService.isRegistered()) {
         final reg = await ServerService.register(code);
-        if (reg == null) return;
+        if (reg == null) {
+          await NotificationService.showFeedback('Sync', 'Échec de l\'enregistrement : serveur inaccessible');
+          return;
+        }
+        _adoptServerReferralCode(reg['referral_code']);
       }
       final res = await ServerService.ping();
-      if (res == null) return;
+      if (res == null) {
+        await NotificationService.showFeedback('Sync', 'Serveur inaccessible (ping échoué)');
+        return;
+      }
+      _adoptServerReferralCode(res['referral_code']);
       final rewards = res['pending_rewards'];
       if (rewards is List && rewards.isNotEmpty) {
         await _applyServerRewards(rewards);
       }
+      await checkAccountLinkStatus();
+      
+      // Récupérer le mot de passe stocké pour le chiffrement E2E
+      final password = await ServerService.getUserPassword();
+      await _syncAccountData(mode, password: password);
     } catch (e) {
       debugPrint('syncWithServer : $e');
+      await NotificationService.showFeedback('Sync', 'Erreur de synchronisation');
+    }
+  }
+
+  Future<void> _syncAccountData(String mode, {String? password}) async {
+    try {
+      final localData = {
+        'level': state.user.level,
+        'globalXp': state.user.globalXp,
+        'coins': state.user.coins,
+        'streak': state.user.streak,
+        'badgeIds': state.user.badgeIds,
+        'total_quests_completed': state.quests.where((q) => q.status == QuestStatus.completed).length,
+      };
+      final res = await ServerService.syncData(localData, mode: mode, password: password);
+      if (res == null) {
+        await NotificationService.showFeedback('Sync', 'Échec sync : serveur inaccessible');
+        return;
+      }
+      // Déchiffrer la réponse si chiffrement E2E utilisé
+      Map<String, dynamic>? data;
+      if (password != null && password.isNotEmpty) {
+        final serverData = ServerService.decryptSyncResponse(res, password);
+        if (serverData != null) {
+          data = serverData;
+        } else {
+          // Decryption failed - password may have changed on web
+          debugPrint('_syncAccountData: decryption failed, password may have changed on web');
+          await NotificationService.showFeedback('Sync', 'Mot de passe modifié sur le web ? Réinitialisez votre mot de passe dans les paramètres.');
+          return;
+        }
+      } else if (res['data'] != null) {
+        // Non-encrypted fallback
+        data = res['data'] as Map<String, dynamic>;
+      }
+      
+      if (data != null) {
+        // Max-merge : garder le maximum entre local et serveur
+        final newLevel = data['level'] != null ? (state.user.level > (data['level'] as int) ? state.user.level : (data['level'] as int)) : state.user.level;
+        final newGlobalXp = data['globalXp'] != null ? (state.user.globalXp > (data['globalXp'] as int) ? state.user.globalXp : (data['globalXp'] as int)) : state.user.globalXp;
+        final newCoins = data['coins'] != null ? (state.user.coins > (data['coins'] as int) ? state.user.coins : (data['coins'] as int)) : state.user.coins;
+        final newStreak = data['streak'] != null ? (state.user.streak > (data['streak'] as int) ? state.user.streak : (data['streak'] as int)) : state.user.streak;
+        
+        state = state.copyWith(user: state.user.copyWith(
+          level: newLevel,
+          globalXp: newGlobalXp,
+          coins: newCoins,
+          streak: newStreak,
+        ));
+        _saveAllToHive();
+      } else {
+        // Ni données chiffrées ni fallback : réponse inattendue / erreur
+        await NotificationService.showFeedback('Sync', 'Réponse serveur invalide');
+      }
+    } catch (e) {
+      debugPrint('_syncAccountData : $e');
+      await NotificationService.showFeedback('Sync', 'Erreur sync données');
+    }
+  }
+
+  /// Le code affiché doit toujours correspondre à celui connu du serveur,
+  /// sinon les amis qui le saisissent recevraient « invalid ».
+  void _adoptServerReferralCode(dynamic serverCode) {
+    if (serverCode is String &&
+        serverCode.isNotEmpty &&
+        serverCode != state.user.referralCode) {
+      state = state.copyWith(
+        user: state.user.copyWith(referralCode: serverCode),
+      );
+      _saveAllToHive();
     }
   }
 
@@ -1036,6 +1249,8 @@ class GameNotifier extends Notifier<GameState> {
       addLootBoxProgress(save: false);
       state = state.copyWith(celebrationPending: true);
       NotificationService.showFeedback("Bravo !", "Vous avez terminé : ${quest.title}. +$xpAdjustment XP !");
+      // Cancel scheduled reminder for this quest
+      NotificationService.cancelReminder(questId);
     } else {
       final coinsReward = quest.xpRewardValue ~/ 10 + 1;
       addCoins(-coinsReward, save: false);
@@ -1084,28 +1299,603 @@ class GameNotifier extends Notifier<GameState> {
 
   int _calculateLevel(int xp) => (sqrt(xp / 100)).floor() + 1;
 
-  void joinGuild(String guildId) {
-    NotificationService.showFeedback("Guilde", "Fonctionnalité disponible avec le serveur.");
+  Future<void> joinGuild(String guildId) async {
+    final res = await ServerService.joinGuild(guildId);
+    if (res == null) {
+      NotificationService.showFeedback("Erreur", "Impossible de rejoindre la guilde");
+      return;
+    }
+    final errorMsg = res['error'] is Map ? res['error']['message'] : res['error'];
+    if (errorMsg != null) {
+      NotificationService.showFeedback("Erreur", errorMsg.toString());
+      return;
+    }
+    final message = res['message'] as String? ?? '';
+    if (message.contains('rejoint') || message.contains('Candidature')) {
+      await _refreshMyGuilds();
+      NotificationService.showFeedback("Succès", message);
+    } else {
+      NotificationService.showFeedback("Info", message.isNotEmpty ? message : 'Action effectuée');
+    }
   }
 
-  void leaveGuild() {
-    state = state.copyWith(currentGuild: null, guildMessages: []);
+  Future<void> leaveGuild({bool showLog = true}) async {
+    final guild = state.currentGuild;
+    if (guild == null) return;
+    final res = await ServerService.leaveGuild(guild.id, showLog: showLog);
+    if (res == null) {
+      NotificationService.showFeedback("Erreur", "Impossible de quitter la guilde");
+      return;
+    }
+    // Handle encryption key rotation from server
+    final guildId = state.currentGuild?.id;
+    final newKey = res['encryption_key'] as String?;
+    if (newKey != null && guildId != null) {
+      await ServerService.saveGuildEncryptionKey(guildId, newKey);
+      debugPrint('leaveGuild: encryption key rotated and cached in secure storage');
+    }
+    // Clear the guild key from secure storage when leaving
+    if (guildId != null) {
+      await ServerService.clearGuildEncryptionKey(guildId);
+      debugPrint('leaveGuild: encryption key cleared from secure storage');
+    }
+    state = state.copyWith(clearCurrentGuild: true, guildMembers: [], guildMessages: [], myGuilds: []);
+    ChatService.leaveCurrentRoom();
+    _saveAllToHive();
+    NotificationService.showFeedback("Guilde", "Vous avez quitté la guilde");
+  }
+
+  Future<void> createGuild(String name, String description, String tag, {
+    GuildJoinType joinType = GuildJoinType.open,
+    int minLevel = 0,
+    int maxMembers = 50,
+    String? logoUrl,
+  }) async {
+    final res = await ServerService.createGuild(
+      name: name,
+      description: description,
+      joinType: joinType,
+      minLevel: minLevel,
+      maxMembers: maxMembers,
+      logoUrl: logoUrl,
+    );
+    if (res == null) {
+      NotificationService.showFeedback("Erreur", "Impossible de créer la guilde");
+      return;
+    }
+    final errorMsg = res['error'] is Map ? res['error']['message'] : res['error'];
+    if (errorMsg != null) {
+      NotificationService.showFeedback("Erreur", errorMsg.toString());
+      return;
+    }
+    await _refreshMyGuilds();
+    NotificationService.showFeedback("Succès", "Guilde créée");
+  }
+
+  // ====== GUILDES - RAFRAÎCHISSEMENT ======
+
+  Future<void> loadMyGuilds() async {
+    await _refreshMyGuilds();
+  }
+
+  Future<void> loadAvailableGuilds() async {
+    final availableGuilds = await ServerService.getGuilds();
+    if (availableGuilds != null) {
+      final guilds = availableGuilds.map((g) => Guild.fromJson(g)).toList();
+      state = state.copyWith(availableGuilds: guilds);
+    }
+  }
+
+  void selectGuild(String guildId) {
+    final guild = state.myGuilds.where((g) => g.id == guildId).firstOrNull;
+    if (guild != null) {
+      state = state.copyWith(currentGuild: guild, guildMessages: []);
+      _saveAllToHive();
+      _refreshGuildData(guildId);
+      _connectChat(guild);
+    }
+  }
+
+  Future<void> _connectChat(Guild guild) async {
+    try {
+      debugPrint('_connectChat: START guild=${guild.name} (id=${guild.id})');
+      _activeGuildId = guild.id;
+      debugPrint('_connectChat: calling getGuildChatKey for guild ${guild.id}');
+      var res = await ServerService.getGuildChatKey(guild.id);
+      var key = res?['key'] as String?;
+      
+      // Retry once if key fetch failed
+      if (key == null) {
+        debugPrint('_connectChat: getGuildChatKey returned null, retrying once...');
+        final retryRes = await ServerService.getGuildChatKey(guild.id);
+        key = retryRes?['key'] as String?;
+        debugPrint('_connectChat: retry getGuildChatKey result: $key');
+      }
+      
+      // Fallback: use secure storage cached encryption key if server fetch failed
+      if (key == null) {
+        key = await ServerService.getGuildEncryptionKey(guild.id);
+        if (key != null) {
+          debugPrint('_connectChat: using secure storage cached encryption key for guild ${guild.id}');
+        } else {
+          debugPrint('_connectChat: WARNING - no encryption key available (server fetch failed and no secure storage cache)');
+        }
+      } else {
+        // Successfully fetched key from server, cache it in secure storage
+        await ServerService.saveGuildEncryptionKey(guild.id, key);
+        debugPrint('_connectChat: encryption key cached in secure storage for guild ${guild.id}');
+      }
+      
+      debugPrint('_connectChat: encryption key = ${key != null ? "SET (${key.length} chars)" : "NULL"}');
+      debugPrint('_connectChat: calling ChatService.connect()');
+      await ChatService.connect();
+      debugPrint('_connectChat: ChatService.connect() returned');
+      debugPrint('_connectChat: calling joinGuildRoom');
+      ChatService.joinGuildRoom(guild.id, encryptionKey: key);
+      debugPrint('_connectChat: joinGuildRoom returned');
+
+      // Bind socket reception handlers once (they are static and accumulate)
+      if (!_chatSocketBound) {
+        debugPrint('_connectChat: _chatSocketBound=false, registering callbacks');
+        _chatSocketBound = true;
+
+        ChatService.onHistory((data) {
+          debugPrint('_connectChat: onHistory callback fired, data keys: ${data.keys.toList()}');
+          final list = (data['messages'] as List<dynamic>?) ?? [];
+          debugPrint('_connectChat: onHistory received ${list.length} raw messages');
+          final messages = list
+              .whereType<Map>()
+              .map((m) => _chatMessageFromSocket(Map<String, dynamic>.from(m), _activeGuildId ?? guild.id))
+              .toList();
+          debugPrint('_connectChat: onHistory parsed ${messages.length} ChatMessages');
+          state = state.copyWith(guildMessages: messages);
+          _saveAllToHive();
+          debugPrint('_connectChat: onHistory state updated with ${messages.length} messages, saved to Hive');
+        });
+
+        ChatService.onMessage((data) {
+          debugPrint('_connectChat: onMessage callback fired, sender=${data['sender_name']}');
+          final msg = _chatMessageFromSocket(data, _activeGuildId ?? guild.id);
+          if (msg.room != 'guild_$_activeGuildId') {
+            debugPrint('_connectChat: onMessage room mismatch (msg.room=${msg.room}, expected=guild_$_activeGuildId), ignoring');
+            return;
+          }
+          
+          // Deduplication: if this message matches a temp message (same text & room), replace it
+          // No timestamp comparison because server returns HH:mm (seconds=0) while temp has real seconds
+          final messages = List<ChatMessage>.from(state.guildMessages);
+          final tempIndex = messages.indexWhere((m) => 
+            m.id.startsWith('temp_') && 
+            m.text == msg.text &&
+            m.room == msg.room
+          );
+          
+          if (tempIndex != -1) {
+            // Replace temp message with server message (which has the real ID and correct sender_name)
+            messages[tempIndex] = msg;
+            state = state.copyWith(guildMessages: messages);
+            debugPrint('_connectChat: onMessage deduplicated temp message');
+          } else {
+            state = state.copyWith(guildMessages: [...messages, msg]);
+            debugPrint('_connectChat: onMessage added new message, total=${messages.length + 1}');
+            // Show notification if message is from another user (not self)
+            if (msg.senderId != state.user.uid) {
+              NotificationService.showGuildMessageNotification(
+                guildName: state.currentGuild?.name ?? 'Guilde',
+                senderName: msg.senderName,
+                message: msg.text,
+                guildId: state.currentGuild?.id ?? '',
+              );
+            }
+          }
+        });
+
+        // Handle message deletion
+        ChatService.onDeleteMessage((data) {
+          debugPrint('_connectChat: onDeleteMessage callback fired');
+          if (data['id'] != null && data['sender_name'] != null) {
+            final deletedId = data['id'].toString();
+            final senderName = data['sender_name'] as String;
+            final messages = List<ChatMessage>.from(state.guildMessages);
+            final index = messages.indexWhere((m) => m.id == deletedId);
+            if (index != -1) {
+              // Replace with "deleted by mod" message
+              messages[index] = ChatMessage(
+                id: messages[index].id,
+                senderId: messages[index].senderId,
+                senderName: '$senderName (modéré)',
+                text: 'Ce message a été supprimé par un modérateur',
+                timestamp: messages[index].timestamp,
+                deleted: true,
+              );
+              state = state.copyWith(guildMessages: messages);
+            }
+          }
+        });
+
+        ChatService.onChatError((msg) {
+          debugPrint('_connectChat: onChatError: $msg');
+          NotificationService.showFeedback("Chat", msg);
+        });
+
+        // Handle decryption failure - re-fetch guild encryption key and re-join
+        ChatService.onDecryptionFailure(() {
+          debugPrint('_connectChat: decryption failure detected, re-fetching guild key');
+          _refreshGuildEncryptionKey(guild.id);
+        });
+      } else {
+        // Re-attach to the freshly selected guild's room
+        debugPrint('_connectChat: _chatSocketBound=true, clearing guildMessages and re-attaching');
+        state = state.copyWith(guildMessages: []);
+      }
+      debugPrint('_connectChat: END');
+    } catch (e, stack) {
+      debugPrint('Failed to connect chat: $e\n$stack');
+    }
+  }
+
+  /// Re-fetch guild encryption key from server and update chat service
+  Future<void> _refreshGuildEncryptionKey(String guildId) async {
+    debugPrint('_refreshGuildEncryptionKey: START guild=$guildId');
+    try {
+      final res = await ServerService.getGuildChatKey(guildId);
+      final key = res?['key'] as String?;
+      if (key != null) {
+        // Cache in secure storage
+        await ServerService.saveGuildEncryptionKey(guildId, key);
+        debugPrint('_refreshGuildEncryptionKey: key refreshed and cached in secure storage');
+        ChatService.joinGuildRoom(guildId, encryptionKey: key);
+      } else {
+        debugPrint('_refreshGuildEncryptionKey: failed to fetch key from server');
+      }
+    } catch (e, stack) {
+      debugPrint('_refreshGuildEncryptionKey: error $e\n$stack');
+    }
+  }
+
+  Future<void> loadGuildMembers(String guildId) async {
+    try {
+      final membersData = await ServerService.getGuildMembers(guildId);
+      if (membersData != null) {
+        final membersJson = membersData['members'] as List<dynamic>?;
+        if (membersJson != null) {
+          final members = membersJson.map((m) => GuildMember.fromJson(m as Map<String, dynamic>)).toList();
+          state = state.copyWith(guildMembers: members);
+        }
+      }
+    } catch (e) {
+      debugPrint('loadGuildMembers error: $e');
+      NotificationService.showFeedback("Erreur", "Impossible de charger les membres");
+    }
+  }
+
+  Future<void> _refreshMyGuilds() async {
+    final myGuilds = await ServerService.getMyGuilds();
+    if (myGuilds != null) {
+      final guilds = myGuilds.map((g) => Guild.fromJson(g)).toList();
+      state = state.copyWith(myGuilds: guilds);
+      if (guilds.isNotEmpty) {
+        // Use existing currentGuild if set, otherwise auto-select first guild
+        final guild = state.currentGuild ?? guilds.first;
+        if (state.currentGuild == null) {
+          state = state.copyWith(currentGuild: guild);
+        }
+        // Always (re)connect chat when we have guilds and chat is not connected
+        if (!ChatService.isConnected) {
+          _connectChat(guild);
+        }
+      }
+    }
+    final availableGuilds = await ServerService.getGuilds();
+    if (availableGuilds != null) {
+      final guilds = availableGuilds.map((g) => Guild.fromJson(g)).toList();
+      state = state.copyWith(availableGuilds: guilds);
+    }
+    final invitations = await ServerService.getMyInvitations();
+    if (invitations != null) {
+      final invs = invitations.map((i) => GuildInvitation.fromJson(i)).toList();
+      state = state.copyWith(guildInvitations: invs);
+    }
     _saveAllToHive();
   }
 
-  void createGuild(String name, String description, String tag) {
-    NotificationService.showFeedback("Guilde", "Fonctionnalité disponible avec le serveur.");
+  Future<void> _refreshGuildData(String guildId) async {
+    final detail = await ServerService.getGuildDetail(guildId);
+    if (detail != null) {
+      final guild = Guild.fromJson(detail);
+      state = state.copyWith(
+        currentGuild: guild,
+        guildMembers: guild.members,
+      );
+      final updatedMyGuilds = state.myGuilds.map((g) => g.id == guildId ? guild : g).toList();
+      state = state.copyWith(myGuilds: updatedMyGuilds);
+      _saveAllToHive();
+    }
   }
 
-  void addChatMessage(String senderName, String text) {
+  // ====== GUILDES - GESTION MEMBRES ======
+
+  String? _serverErrorMessage(Map<String, dynamic>? res) {
+    if (res == null) return null;
+    final e = res['error'];
+    if (e is Map) return e['message']?.toString();
+    if (e is String) return e;
+    return null;
+  }
+
+  /// Affiche un retour utilisateur basé sur la réponse serveur et retourne
+  /// true si l'opération a réussi (pas d'erreur), false sinon.
+  Future<bool> _notifyServerResult(Map<String, dynamic>? res, String defaultError) async {
+    if (res == null) {
+      NotificationService.showFeedback("Erreur", defaultError);
+      return false;
+    }
+    final err = _serverErrorMessage(res);
+    if (err != null) {
+      NotificationService.showFeedback("Erreur", err);
+      return false;
+    }
+    if (res['message'] != null) NotificationService.showFeedback("Succès", res['message']);
+    return true;
+  }
+
+  Future<void> kickMember(String guildId, String targetUid) async {
+    final res = await ServerService.kickMember(guildId, targetUid);
+    if (res != null && await _notifyServerResult(res, "Impossible d'exclure le membre")) {
+      // Handle encryption key rotation from server
+      final newKey = res['encryption_key'] as String?;
+      if (newKey != null) {
+        await ServerService.saveGuildEncryptionKey(guildId, newKey);
+        // Re-join chat room with new key
+        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        debugPrint('kickMember: encryption key rotated and cached in secure storage');
+      }
+      await _refreshGuildData(guildId);
+    }
+  }
+
+  Future<void> promoteMember(String guildId, String targetUid) async {
+    final res = await ServerService.promoteMember(guildId, targetUid);
+    if (res != null && await _notifyServerResult(res, "Impossible de promouvoir")) {
+      // Handle encryption key rotation from server
+      final newKey = res['encryption_key'] as String?;
+      if (newKey != null) {
+        await ServerService.saveGuildEncryptionKey(guildId, newKey);
+        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        debugPrint('promoteMember: encryption key rotated and cached in secure storage');
+      }
+      await _refreshGuildData(guildId);
+    }
+  }
+
+  Future<void> demoteMember(String guildId, String targetUid) async {
+    final res = await ServerService.demoteMember(guildId, targetUid);
+    if (res != null && await _notifyServerResult(res, "Impossible de rétrograder")) {
+      // Handle encryption key rotation from server
+      final newKey = res['encryption_key'] as String?;
+      if (newKey != null) {
+        await ServerService.saveGuildEncryptionKey(guildId, newKey);
+        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        debugPrint('demoteMember: encryption key rotated and cached in secure storage');
+      }
+      await _refreshGuildData(guildId);
+    }
+  }
+
+  Future<void> transferOwnership(String guildId, String targetUid) async {
+    final res = await ServerService.transferOwnership(guildId, targetUid);
+    if (res != null && await _notifyServerResult(res, "Impossible de transférer")) {
+      // Handle encryption key rotation from server
+      final newKey = res['encryption_key'] as String?;
+      if (newKey != null) {
+        await ServerService.saveGuildEncryptionKey(guildId, newKey);
+        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        debugPrint('transferOwnership: encryption key rotated and cached in secure storage');
+      }
+      await _refreshGuildData(guildId);
+    }
+  }
+
+  Future<void> updateGuildSettings(String guildId, {
+    String? name,
+    String? description,
+    String? logoUrl,
+    GuildJoinType? joinType,
+    int? minLevel,
+    int? maxMembers,
+  }) async {
+    final res = await ServerService.updateGuild(guildId,
+      name: name,
+      description: description,
+      logoUrl: logoUrl,
+      joinType: joinType,
+      minLevel: minLevel,
+      maxMembers: maxMembers,
+    );
+    if (await _notifyServerResult(res, "Impossible de mettre à jour")) {
+      await _refreshMyGuilds();
+    }
+  }
+
+  // ====== INVITATIONS ======
+
+  Future<void> inviteToGuild(String guildId, String username) async {
+    final res = await ServerService.inviteToGuild(guildId, username);
+    await _notifyServerResult(res, "Impossible d'inviter");
+  }
+
+  Future<void> respondToInvitation(String invitationId, bool accept) async {
+    final res = await ServerService.respondToInvitation(invitationId, accept);
+    if (await _notifyServerResult(res, "Impossible de répondre")) {
+      await _refreshMyGuilds();
+    }
+  }
+
+  Future<void> loadGuildInvitations() async {
+    final invitations = await ServerService.getMyInvitations();
+    if (invitations != null) {
+      final invs = invitations.map((i) => GuildInvitation.fromJson(i)).toList();
+      state = state.copyWith(guildInvitations: invs);
+    }
+  }
+
+  // ====== QUÊTES DE GUILDE ======
+
+  Future<void> loadGuildQuests(String guildId) async {
+    final quests = await ServerService.getGuildQuests(guildId);
+    if (quests != null) {
+      final q = quests.map((q) => GuildQuest.fromJson(q)).toList();
+      state = state.copyWith(guildQuests: q);
+    }
+  }
+
+  Future<void> createGuildQuest(String guildId, {
+    required String title,
+    required String description,
+    required int xpReward,
+    required int coinReward,
+  }) async {
+    final res = await ServerService.createGuildQuest(guildId, title, description, xpReward, coinReward);
+    if (await _notifyServerResult(res, "Impossible de créer la quête")) {
+      await loadGuildQuests(guildId);
+      NotificationService.showFeedback("Succès", "Quête créée");
+    }
+  }
+
+  Future<void> completeGuildQuest(String guildId, String questId) async {
+    final res = await ServerService.completeGuildQuest(guildId, questId);
+    if (await _notifyServerResult(res, "Impossible de compléter")) {
+      await loadGuildQuests(guildId);
+      NotificationService.showFeedback("Succès", "Quête complétée");
+    }
+  }
+
+  Future<void> deleteGuildQuest(String guildId, String questId) async {
+    final res = await ServerService.deleteGuildQuest(guildId, questId);
+    if (await _notifyServerResult(res, "Impossible d'annuler")) {
+      await loadGuildQuests(guildId);
+      NotificationService.showFeedback("Succès", "Quête annulée");
+    }
+  }
+
+  // ====== LOGS ======
+
+  Future<void> loadGuildLogs(String guildId) async {
+    final logs = await ServerService.getGuildLogs(guildId);
+    if (logs != null) {
+      final l = logs.map((l) => GuildLog.fromJson(l)).toList();
+      state = state.copyWith(guildLogs: l);
+    }
+  }
+
+  // ====== LEADERBOARD GUILDES ======
+
+  Future<void> loadGuildLeaderboard() async {
+    final leaderboard = await ServerService.getGuildLeaderboard();
+    if (leaderboard != null) {
+      final g = leaderboard.map((g) => Guild.fromJson(g)).toList();
+      state = state.copyWith(guildLeaderboard: g);
+    }
+  }
+
+  // ====== LEADERBOARD MONDIAL ======
+
+  Future<void> loadLeaderboard() async {
+    // Synchronise d'abord les progrès locaux pour que le classement reflète
+    // la vraie progression du joueur (le serveur n'est mis à jour que lors
+    // d'une sync).
+    try {
+      await syncWithServer(mode: 'merge');
+    } catch (_) {}
+    final data = await ServerService.getLeaderboard();
+    if (data != null) {
+      final entries = data.map((e) => LeaderboardEntry(
+        pseudo: e['username'] ?? '',
+        level: e['level'] ?? 1,
+        totalXp: e['xp'] ?? 0,
+        streak: e['streak'] ?? 0,
+      )).toList();
+      state = state.copyWith(leaderboard: entries);
+    }
+  }
+
+  // ====== PROFIL PUBLIC ======
+
+  Future<void> loadUserProfile(String uid) async {
+    final profile = await ServerService.getUserProfile(uid);
+    if (profile != null) {
+      // Could store in state or return directly
+    }
+  }
+
+  // ====== CHAT GUILDE ======
+
+  Future<String?> getGuildChatKey(String guildId) async {
+    final res = await ServerService.getGuildChatKey(guildId);
+    if (res != null && res['key'] != null) {
+      return res['key'] as String;
+    }
+    return null;
+  }
+
+  Future<void> addChatMessage(String senderId, String text) async {
     final msg = ChatMessage(
-      id: DateTime.now().toString(),
-      senderName: senderName,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      senderId: senderId,
+      senderName: senderId,
       text: text,
       timestamp: DateTime.now(),
     );
-    state = state.copyWith(guildMessages: [...state.guildMessages, msg]);
-    _saveAllToHive();
+    state = state.copyWith(
+      guildMessages: [...state.guildMessages, msg],
+    );
+  }
+
+  Future<void> sendGuildMessage(String text) async {
+    if (state.currentGuild == null) return;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final guildId = state.currentGuild!.id;
+    final room = 'guild_$guildId';
+
+    // Optimistic insertion: add message immediately with temp ID
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final user = state.user;
+    final tempMsg = ChatMessage(
+      id: tempId,
+      senderName: user.pseudo,
+      senderId: user.uid,
+      text: trimmed,
+      timestamp: DateTime.now(),
+      room: room,
+    );
+
+    state = state.copyWith(guildMessages: [...state.guildMessages, tempMsg]);
+
+    // Send with retry logic (max 2 attempts: initial + 1 retry with key refresh)
+    const maxAttempts = 2;
+    bool success = false;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      success = ChatService.sendMessage(trimmed);
+      if (success) break;
+      
+      if (attempt < maxAttempts) {
+        debugPrint('sendGuildMessage: attempt $attempt failed, refreshing key and retrying...');
+        // Re-fetch encryption key and re-join room
+        await _refreshGuildEncryptionKey(guildId);
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
+
+    if (!success) {
+      // Remove temp message on failure and show error
+      state = state.copyWith(
+        guildMessages: state.guildMessages.where((m) => m.id != tempId).toList(),
+      );
+      debugPrint('sendGuildMessage: failed after $maxAttempts attempts, temp message removed');
+      NotificationService.showFeedback('Chat', 'Échec envoi message (réseau)');
+    }
   }
 
   // ====== WEEKLY XP LOG ======
@@ -1134,3 +1924,48 @@ class GameNotifier extends Notifier<GameState> {
 }
 
 final gameProvider = NotifierProvider<GameNotifier, GameState>(GameNotifier.new);
+
+enum ServerStatus {
+  unknown,
+  connected,
+  warning,
+  disconnected,
+}
+
+class ServerStatusNotifier extends Notifier<ServerStatus> {
+  Timer? _timer;
+
+  @override
+  ServerStatus build() {
+    _startPeriodicCheck();
+    // Initial check
+    _checkServer();
+    return ServerStatus.unknown;
+  }
+
+  void _startPeriodicCheck() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _checkServer());
+  }
+
+  Future<void> _checkServer() async {
+    try {
+      final res = await ServerService.healthCheck();
+      if (!ref.mounted) return;
+      if (res != null) {
+        final status = res['status'] as String?;
+        if (status == 'ok' || status == 'registered' || status == 'existing' || status == 'created') {
+          state = ServerStatus.connected;
+        } else {
+          state = ServerStatus.warning;
+        }
+      } else {
+        state = ServerStatus.disconnected;
+      }
+    } catch (e) {
+      if (ref.mounted) state = ServerStatus.disconnected;
+    }
+  }
+}
+
+final serverStatusProvider = NotifierProvider<ServerStatusNotifier, ServerStatus>(ServerStatusNotifier.new);

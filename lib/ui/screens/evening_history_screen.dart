@@ -56,9 +56,9 @@ class EveningHistoryScreen extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: sorted.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (_, i) {
-                final e = sorted[i];
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final e = sorted[index];
                 return _EntryCard(
                   entry: e,
                   onEdit: () => _showEditDialog(context, ref, e, t),
@@ -137,10 +137,10 @@ class EveningHistoryScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('🗑 Supprimer le bilan ?'),
+        title: Text(t.deleteEntryTitle),
         content: Text(entry.coinReward > 0
-            ? 'Cette action retirera ${entry.coinReward}💰 de votre solde.'
-            : 'Cette entrée sera supprimée de votre journal.'),
+            ? '${t.delCoins1}${entry.coinReward}${t.delCoins2}'
+            : t.deleteEntryMsg),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -159,7 +159,7 @@ class EveningHistoryScreen extends ConsumerWidget {
   }
 }
 
-class _EntryCard extends StatelessWidget {
+class _EntryCard extends ConsumerWidget {
   final EveningEntry entry;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -167,7 +167,8 @@ class _EntryCard extends StatelessWidget {
   const _EntryCard({required this.entry, required this.onEdit, required this.onDelete});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
     final dateStr = DateFormat.yMd(Localizations.localeOf(context).languageCode).format(entry.date);
     return Card(
       child: Padding(
@@ -194,13 +195,13 @@ class _EntryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.edit, size: 18),
-                  tooltip: 'Modifier',
+                  tooltip: t.edit,
                   visualDensity: VisualDensity.compact,
                   onPressed: onEdit,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: 'Supprimer',
+                  tooltip: t.delete,
                   visualDensity: VisualDensity.compact,
                   color: Colors.red,
                   onPressed: onDelete,

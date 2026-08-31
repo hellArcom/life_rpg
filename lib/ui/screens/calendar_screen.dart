@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:intl/intl.dart';
+import '../../core/utils.dart';
 import '../../models/game_models.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
@@ -99,7 +100,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               }
             },
             onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
+              setState(() => _focusedDay = focusedDay);
             },
             eventLoader: (day) => _getEventsForDay(day, quests, bets),
             calendarStyle: CalendarStyle(

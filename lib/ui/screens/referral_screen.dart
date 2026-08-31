@@ -32,20 +32,22 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   }
 
   Future<void> _copyCode() async {
+    final t = ref.watch(translationsProvider);
     final code = ref.read(gameProvider.notifier).ensureReferralCode();
     await Clipboard.setData(ClipboardData(text: code));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Code copié !')),
+        SnackBar(content: Text(t.copied)),
       );
     }
   }
 
   Future<void> _share() async {
+    final t = ref.watch(translationsProvider);
     final code = ref.read(gameProvider.notifier).ensureReferralCode();
     await Share.share(
-      'Rejoins-moi sur Life RPG ! Utilise mon code de parrainage : $code\nTélécharge l\'app : https://github.com/hellArcom/Life-RPG-release',
-      subject: 'Mon code de parrainage Life RPG',
+      '${t.referralShare}$code\nhttps://github.com/hellArcom/Life-RPG-release',
+      subject: t.referralShareSubject,
     );
   }
 

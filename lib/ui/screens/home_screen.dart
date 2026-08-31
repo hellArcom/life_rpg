@@ -61,8 +61,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             context: context,
             barrierDismissible: false,
             builder: (_) => CelebrationOverlay(
-              title: 'Quête terminée !',
-              subtitle: '+ pièces !',
+              title: t.questComplete,
+              subtitle: '+ ${t.coinsLabel} !',
               onDismiss: () {
                 ref.read(gameProvider.notifier).dismissCelebration();
                 Navigator.of(context).pop();
@@ -190,7 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: _buildActionCard(
                     context, '🏆', t.milestones,
-                    user.streak > 0 ? '${user.streak} / ${UserProfile.streakMilestones.firstWhere((m) => m > user.streak, orElse: () => user.streak)} j' : 'Démarrer',
+                    user.streak > 0 ? '${user.streak} / ${UserProfile.streakMilestones.firstWhere((m) => m > user.streak, orElse: () => user.streak)} j' : t.start,
                     () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StreakMilestonesScreen())),
                   ),
                 ),
@@ -272,7 +272,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text('Ouvrir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(t.open, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   )
                 else
                   Text('${gameState.lootBoxProgress}/${box.questsRequired}', style: const TextStyle(color: Colors.amber)),
@@ -301,7 +301,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       barrierDismissible: false,
       builder: (_) => CelebrationOverlay(
         title: '${box.icon} ${box.name}',
-        subtitle: 'Ouverture...',
+        subtitle: t.opening,
         onDismiss: () {
           final result = notifier.openLootBox();
           Navigator.of(context).pop();
@@ -316,15 +316,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _showLootBoxReward(BuildContext context, LootBox box, String msg) {
+    final t = ref.watch(translationsProvider);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('${box.icon} Récompense !'),
+        title: Text('${box.icon} ${t.reward}'),
         content: Text(msg, style: const TextStyle(fontSize: 18, height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Super !'),
+            child: Text(t.superExcl),
           ),
         ],
       ),
@@ -335,8 +336,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('🧊 Gel de série'),
-        content: const Text('Dépenser 50 pièces pour activer le gel de série ?\nUn jour manqué ne cassera pas votre série.'),
+        title: Text(t.streakFreezeTitle),
+        content: Text(t.streakFreezeMsg),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -347,7 +348,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               notifier.activateStreakFreeze();
               Navigator.of(context).pop();
             },
-            child: const Text('Confirmer'),
+            child: Text(t.confirm),
           ),
         ],
       ),

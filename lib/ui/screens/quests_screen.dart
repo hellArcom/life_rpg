@@ -48,6 +48,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: null,
           onPressed: () {
             if (categories.isNotEmpty) {
               showAddQuestDialog(context, ref, initialCategory: categories.first);

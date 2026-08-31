@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
 import '../widgets/xp_bar.dart';
 
@@ -23,11 +24,12 @@ class SkillsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
     final skills = ref.watch(gameProvider.select((s) => s.skills));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('COMPÉTENCES'),
+        title: Text(t.skills),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -70,7 +72,7 @@ class SkillsScreen extends ConsumerWidget {
                             skill.category.label.toUpperCase(),
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          Text('Niveau ${skill.level}', style: const TextStyle(color: Colors.grey)),
+                          Text('${t.level} ${skill.level}', style: const TextStyle(color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -83,7 +85,7 @@ class SkillsScreen extends ConsumerWidget {
                   label: '',
                 ),
                 const SizedBox(height: 24),
-                const Text('PROGRESSION RÉCENTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                Text(t.recentProgression, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 60,
@@ -117,6 +119,7 @@ class SkillsScreen extends ConsumerWidget {
   }
 
   void _showAddCategoryDialog(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
     String label = '';
     String selectedIcon = 'star';
     final List<String> availableIcons = ['star', 'fitness_center', 'menu_book', 'timer', 'groups', 'palette', 'bolt', 'work', 'school'];
@@ -125,12 +128,12 @@ class SkillsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Nouvelle catégorie'),
+          title: Text(t.newCategory),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                decoration: const InputDecoration(labelText: 'Nom de la compétence'),
+                decoration: InputDecoration(labelText: t.skillName),
                 onChanged: (v) => label = v,
               ),
               const SizedBox(height: 10),
@@ -141,12 +144,12 @@ class SkillsScreen extends ConsumerWidget {
                   child: Row(children: [Icon(_getIconByName(icon)), const SizedBox(width: 10), Text(icon)]),
                 )).toList(),
                 onChanged: (v) => setState(() => selectedIcon = v!),
-                decoration: const InputDecoration(labelText: 'Icône'),
+                decoration: InputDecoration(labelText: t.icon),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
             ElevatedButton(
               onPressed: () {
                 if (label.isNotEmpty) {
@@ -154,7 +157,7 @@ class SkillsScreen extends ConsumerWidget {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Ajouter'),
+              child: Text(t.add),
             ),
           ],
         ),
