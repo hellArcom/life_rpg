@@ -51,14 +51,6 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.text_fields),
           ),
           const Divider(),
-          // Accessibility: Color blind mode
-          ListTile(
-            title: Text(t.colorBlindMode),
-            subtitle: Text(settings.colorBlindModeLabel),
-            leading: const Icon(Icons.color_lens),
-            onTap: () => _showColorBlindDialog(context, settingsNotifier, settings.colorBlindMode, t),
-          ),
-          const Divider(),
           // Accessibility: High contrast
           ListTile(
             title: Text(t.highContrast),
@@ -242,45 +234,5 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _showColorBlindDialog(BuildContext context, SettingsNotifier notifier, ColorBlindMode currentMode, Translations t) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.chooseColorBlindMode),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ColorBlindMode.values.map((mode) {
-            return RadioListTile<ColorBlindMode>(
-              title: Text(_colorBlindModeToString(mode, t)),
-              value: mode,
-              // ignore: deprecated_member_use
-              groupValue: currentMode,
-              // ignore: deprecated_member_use
-              onChanged: (val) {
-                if (val != null) {
-                  notifier.setColorBlindMode(val);
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  String _colorBlindModeToString(ColorBlindMode mode, Translations t) {
-    switch (mode) {
-      case ColorBlindMode.none:
-        return t.none;
-      case ColorBlindMode.protanopia:
-        return t.protanopia;
-      case ColorBlindMode.deuteranopia:
-        return t.deuteranopia;
-      case ColorBlindMode.tritanopia:
-        return t.tritanopia;
-    }
   }
 }
