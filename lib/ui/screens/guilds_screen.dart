@@ -16,7 +16,7 @@ class GuildsScreen extends ConsumerStatefulWidget {
 
 class _GuildsScreenState extends ConsumerState<GuildsScreen>
     with SingleTickerProviderStateMixin {
-  Translations get t => ref.read(translationsProvider);
+  Translations get t => ref.watch(translationsProvider);
   late TabController _tabController;
   late TextEditingController _chatController;
   final ScrollController _chatScrollController = ScrollController();
@@ -48,6 +48,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationsProvider);
     final gameState = ref.watch(gameProvider);
     final myGuilds = gameState.myGuilds;
     final currentGuild = gameState.currentGuild;
@@ -167,7 +168,28 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
                               foregroundColor: Colors.orange.shade700,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             ),
-                            child: const Text('Lier', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            child: Text(t.link, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (linked && gameState.guildOffline)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: Colors.amber.shade700,
+                    child: SafeArea(
+                      bottom: false,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              t.guildOffline,
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
                           ),
                         ],
                       ),
@@ -197,6 +219,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
   }
 
   Widget _buildMyGuildsTab(WidgetRef ref, List<Guild> myGuilds) {
+    final t = ref.watch(translationsProvider);
     if (myGuilds.isEmpty) {
       return Center(
         child: Column(
@@ -205,7 +228,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
             Icon(Icons.shield_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Vous n\'êtes dans aucune guilde',
+              t.noGuild,
               style: TextStyle(color: Colors.grey[500], fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -364,8 +387,30 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
   }
 
   Widget _buildGuildDetail(BuildContext context, WidgetRef ref, Guild guild, GameState state) {
+    final t = ref.watch(translationsProvider);
     return Column(
       children: [
+        if (state.guildOffline)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: Colors.amber.shade700,
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      t.guildOffline,
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Container(
           padding: const EdgeInsets.all(16),
           color: Theme.of(context).colorScheme.surface,
@@ -409,7 +454,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
                                   contentPadding: EdgeInsets.zero,
                                   value: showLog,
                                   onChanged: (v) => setSt(() => showLog = v ?? true),
-                                  title: const Text('Afficher mon départ dans le journal', style: TextStyle(fontSize: 13)),
+                                  title: Text(t.showLeaveInLog, style: TextStyle(fontSize: 13)),
                                 ),
                               ],
                             ),
@@ -579,7 +624,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
           return ListTile(
             leading: CircleAvatar(child: Text(m.pseudo[0].toUpperCase())),
             title: Text(m.pseudo),
-            subtitle: Text('${_roleLabel(m.role)} • Niv. ${m.level}'),
+            subtitle: Text('${_roleLabel(m.role)} • ${t.levelShort} ${m.level}'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showMemberProfile(context, m.pseudo),
           );
@@ -614,7 +659,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
                     _profileRow(t.level, '${data['level'] ?? 1}'),
                     _profileRow(t.globalXp, '${data['xp'] ?? 0}'),
                     _profileRow(t.coins, '${data['coins'] ?? 0}'),
-                    _profileRow(t.streak, '${data['streak'] ?? 0} jours'),
+                    _profileRow(t.streak, '${data['streak'] ?? 0} ${t.days}'),
                     _profileRow(t.questsCompletedLabel, '${data['total_quests_completed'] ?? 0}'),
                     _profileRow(t.referrals, '${data['referrals_count'] ?? 0}'),
                     _profileRow(t.badges, (data['badges'] as List?)?.join(', ') ?? t.none),
@@ -625,7 +670,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t.close)),
         ],
       ),
     );
@@ -659,7 +704,7 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
             child: ListTile(
               leading: Icon(isActive ? Icons.check_circle_outline : Icons.check_circle, color: isActive ? null : Colors.green),
               title: Text(q.title),
-              subtitle: Text('${q.xpReward} XP • ${q.coinReward}💰'),
+              subtitle: Text('${q.xpReward} ${t.xpShort} • ${q.coinReward}💰'),
               trailing: isActive ? IconButton(
                 icon: const Icon(Icons.play_arrow),
                 onPressed: () => ref.read(gameProvider.notifier).completeGuildQuest(q.guildId, q.id),
@@ -753,7 +798,7 @@ class CreateGuildInline extends ConsumerStatefulWidget {
 }
 
 class _CreateGuildInlineState extends ConsumerState<CreateGuildInline> {
-  Translations get t => ref.read(translationsProvider);
+  Translations get t => ref.watch(translationsProvider);
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _minLevelController = TextEditingController(text: '0');

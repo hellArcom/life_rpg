@@ -62,7 +62,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const Divider(),
-          _buildSectionHeader('Audio'),
+          _buildSectionHeader(t.audio),
           ListTile(
             title: Text(t.soundVolume),
             subtitle: Slider(
@@ -91,9 +91,9 @@ class SettingsScreen extends ConsumerWidget {
               constraints: const BoxConstraints(minWidth: 48, minHeight: 36),
               children: [
                 const Icon(Icons.vibration, size: 18),
-                const Text('Faible', style: TextStyle(fontSize: 10)),
-                const Text('Moyen', style: TextStyle(fontSize: 10)),
-                const Text('Fort', style: TextStyle(fontSize: 10)),
+                Text(t.hapticLow, style: TextStyle(fontSize: 10)),
+                Text(t.hapticMedium, style: TextStyle(fontSize: 10)),
+                Text(t.hapticHigh, style: TextStyle(fontSize: 10)),
               ],
             ),
             leading: const Icon(Icons.vibration),

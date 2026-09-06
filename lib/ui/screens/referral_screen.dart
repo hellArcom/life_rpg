@@ -135,13 +135,13 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
           _rewardRow(
             Icons.monetization_on,
             t.referrerReward,
-            '+${GameNotifier.referrerRewardCoins}💰 / ${GameNotifier.referrerRewardFreezeDays}j ${t.freezeDays} / +${GameNotifier.referrerRewardXp} XP',
+            '+${GameNotifier.referrerRewardCoins}💰 / ${GameNotifier.referrerRewardFreezeDays}${t.dayShort} ${t.freezeDays} / +${GameNotifier.referrerRewardXp} ${t.xpShort}',
           ),
           const SizedBox(height: 8),
           _rewardRow(
             Icons.person_add,
             t.refereeReward,
-            '+${GameNotifier.refereeRewardCoins}💰 / +${GameNotifier.refereeRewardXp} XP',
+            '+${GameNotifier.refereeRewardCoins}💰 / +${GameNotifier.refereeRewardXp} ${t.xpShort}',
           ),
 
           const SizedBox(height: 24),

@@ -146,7 +146,7 @@ class _BetsScreenState extends ConsumerState<BetsScreen> {
                       }
                     },
                   ),
-                  Text('${t.maxAllowed} $cap XP', style: const TextStyle(fontSize: 12, color: Colors.amber)),
+                  Text('${t.maxAllowed} $cap ${t.xpShort}', style: const TextStyle(fontSize: 12, color: Colors.amber)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -243,7 +243,7 @@ class _BetCard extends ConsumerWidget {
               Text(
                 isExpired
                     ? t.timeUp
-                    : '${t.timeLeft} ${remaining.inDays}j ${remaining.inHours % 24}h ${remaining.inMinutes % 60}min',
+                    : '${t.timeLeft} ${remaining.inDays}${t.dayShort} ${remaining.inHours % 24}${t.hourShort} ${remaining.inMinutes % 60}${t.minShort}',
                 style: TextStyle(color: isExpired ? Colors.red : Colors.blue, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
@@ -257,8 +257,8 @@ class _BetCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('🏆 +${bet.rewardXp} XP', style: const TextStyle(color: Colors.green, fontSize: 12)),
-                Text('💀 -${bet.penaltyXp} XP', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                Text('🏆 +${bet.rewardXp} ${t.xpShort}', style: const TextStyle(color: Colors.green, fontSize: 12)),
+                Text('💀 -${bet.penaltyXp} ${t.xpShort}', style: const TextStyle(color: Colors.red, fontSize: 12)),
               ],
             ),
           ],

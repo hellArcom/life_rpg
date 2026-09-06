@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/translations.dart';
 
-class CelebrationOverlay extends StatefulWidget {
+class CelebrationOverlay extends ConsumerStatefulWidget {
   final String title;
   final String subtitle;
   final VoidCallback onDismiss;
@@ -14,10 +16,10 @@ class CelebrationOverlay extends StatefulWidget {
   });
 
   @override
-  State<CelebrationOverlay> createState() => _CelebrationOverlayState();
+  ConsumerState<CelebrationOverlay> createState() => _CelebrationOverlayState();
 }
 
-class _CelebrationOverlayState extends State<CelebrationOverlay>
+class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnim;
@@ -115,7 +117,10 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                           ),
                         ],
                         const SizedBox(height: 32),
-                        const Text('Touchez pour continuer', style: TextStyle(color: Colors.white38)),
+                        Consumer(builder: (context, ref, _) {
+                          final t = ref.watch(translationsProvider);
+                          return Text(t.touchToContinue, style: TextStyle(color: Colors.white38));
+                        }),
                       ],
                     ),
                   ),

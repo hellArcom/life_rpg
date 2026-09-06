@@ -12,7 +12,7 @@ class CreateGuildScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateGuildScreenState extends ConsumerState<CreateGuildScreen> {
-  Translations get t => ref.read(translationsProvider);
+  Translations get t => ref.watch(translationsProvider);
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _tagController = TextEditingController();

@@ -64,6 +64,24 @@ class SettingsState {
     }
   }
 
+  String localizedLabel(dynamic t) {
+    // t is expected to be Translations, avoids import cycle by using dynamic
+    try {
+      switch (colorBlindMode) {
+        case ColorBlindMode.none:
+          return (t as dynamic).noColorBlind as String? ?? 'Aucun';
+        case ColorBlindMode.protanopia:
+          return (t as dynamic).protanopia as String? ?? 'Protanopie (rouge)';
+        case ColorBlindMode.deuteranopia:
+          return (t as dynamic).deuteranopia as String? ?? 'Deutéranopie (vert)';
+        case ColorBlindMode.tritanopia:
+          return (t as dynamic).tritanopia as String? ?? 'Tritanopie (bleu)';
+      }
+    } catch (_) {
+      return colorBlindModeLabel;
+    }
+  }
+
   Map<String, dynamic> toJson() => {
     'themeMode': themeMode.name,
     'languageCode': locale.languageCode,

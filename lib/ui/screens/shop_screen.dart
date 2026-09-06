@@ -47,13 +47,15 @@ class ShopScreen extends ConsumerWidget {
           final item = shopItems[index];
           final owned = _alreadyOwned(item, user);
           final canAfford = user.coins >= item.cost;
+          final displayName = t.translateShopItemName(item.id).isNotEmpty ? t.translateShopItemName(item.id) : item.name;
+          final displayDesc = t.translateShopItemDesc(item.id).isNotEmpty ? t.translateShopItemDesc(item.id) : item.description;
           return Card(
             key: ValueKey(item.id),
             margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
               leading: Text(item.icon, style: const TextStyle(fontSize: 32)),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(item.description),
+              title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(displayDesc),
               trailing: owned
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -62,7 +64,7 @@ class ShopScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.green),
                       ),
-                      child: const Text('Possédé ✓', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: Text(t.owned, style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
                     )
                   : ElevatedButton(
                       onPressed: canAfford

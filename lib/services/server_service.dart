@@ -40,16 +40,30 @@ class ServerService {
   /// MockClient) so the network layer can be verified without a live server.
   static http.Client httpClient = http.Client();
 
+  static const _deviceIdKey = 'device_id_secure';
   /// Identifiant unique d'installation (32 hex). Créé une fois, persisté.
+  /// Stocké à la fois en SecureStorage (prioritaire, chiffré) et Hive (compat).
   static Future<String> ensureDeviceId() async {
     if (_deviceId != null) return _deviceId!;
+    // Try SecureStorage first (chiffré)
+    try {
+      final secure = await _secureStorage.read(key: _deviceIdKey);
+      if (secure != null && secure.isNotEmpty && RegExp(r'^[0-9a-f]{32}$').hasMatch(secure)) {
+        _deviceId = secure;
+        // Sync to Hive for legacy readers
+        await OfflineManager.saveData('device_id', _deviceId!);
+        return _deviceId!;
+      }
+    } catch (_) {}
     final saved = OfflineManager.getData('device_id');
-    if (saved is String && saved.isNotEmpty) {
+    if (saved is String && saved.isNotEmpty && RegExp(r'^[0-9a-f]{32}$').hasMatch(saved)) {
       _deviceId = saved;
+      try { await _secureStorage.write(key: _deviceIdKey, value: _deviceId!); } catch (_) {}
     } else {
       final rnd = Random.secure();
       _deviceId = List.generate(32, (_) => rnd.nextInt(16).toRadixString(16)).join();
       await OfflineManager.saveData('device_id', _deviceId!);
+      try { await _secureStorage.write(key: _deviceIdKey, value: _deviceId!); } catch (_) {}
     }
     return _deviceId!;
   }
@@ -543,10 +557,16 @@ class ServerService {
     return res;
   }
 
-  /// Délie le device du compte
-  static Future<Map<String, dynamic>?> unlinkAccount() async {
+  /// Délie le device du compte — requiert le mot de passe stocké pour prouver la propriété
+  static Future<Map<String, dynamic>?> unlinkAccount({String? passwordOverride}) async {
+    final pwd = passwordOverride ?? await getUserPassword();
+    if (pwd == null || pwd.isEmpty) {
+      debugPrint('ServerService unlinkAccount: no password stored, unlink requires password');
+      return null;
+    }
     final body = <String, dynamic>{
       'device_id': await ensureDeviceId(),
+      'password': pwd,
     };
     final res = await _post('/api/v1/account/unlink', body);
     if (res != null && res['message'] != null) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
 
 class GuildLeaderboardScreen extends ConsumerStatefulWidget {
@@ -24,11 +25,12 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = ref.watch(translationsProvider);
     final guildLeaderboard = ref.watch(gameProvider.select((s) => s.guildLeaderboard));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CLASSEMENT DES GUILDES'),
+        title: Text(t.guildLeaderboard.toUpperCase()),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -41,7 +43,7 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
         child: guildLeaderboard.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
+                children: [
                   SizedBox(height: 200),
                   Center(
                     child: Column(
@@ -49,9 +51,9 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
                       children: [
                         Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text('Aucune guilde', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        Text(t.noGuildShort, style: TextStyle(color: Colors.grey, fontSize: 16)),
                         SizedBox(height: 8),
-                        Text('Les guildes apparaîtront ici', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        Text(t.guildsAppearHere, style: TextStyle(color: Colors.grey, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -91,7 +93,7 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
                                 Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${g.memberCount}/${g.maxMembers} membres • ${g.totalXp} XP total',
+                                  '${g.memberCount}/${g.maxMembers} ${t.membersWord} • ${g.totalXp} ${t.totalXp}',
                                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                 ),
                               ],
@@ -105,7 +107,7 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue),
                               ),
                               Text(
-                                'Niv. moy: ${g.avgLevel.toStringAsFixed(1)}',
+                                '${t.avgLevel} ${g.avgLevel.toStringAsFixed(1)}',
                                 style: TextStyle(color: Colors.grey[500], fontSize: 11),
                               ),
                             ],

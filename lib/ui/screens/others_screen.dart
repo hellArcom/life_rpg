@@ -4,8 +4,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import 'settings_screen.dart';
@@ -133,6 +134,20 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
           const SizedBox(height: 16),
           _buildFeatureCard(
             context,
+            t.donate,
+            t.donateDesc,
+            Icons.favorite,
+            Colors.red,
+            () async {
+              final uri = Uri.parse('https://ko-fi.com/arcom');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
             t.settings,
             t.settingsDesc,
             Icons.settings,
@@ -200,7 +215,7 @@ class FocusModeScreen extends ConsumerStatefulWidget {
 
 class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
     with WidgetsBindingObserver {
-  Translations get t => ref.read(translationsProvider);
+  Translations get t => ref.watch(translationsProvider);
   int _selectedMinutes = 5;
   int _remainingSeconds = 0;
   Timer? _timer;
@@ -317,7 +332,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                 spacing: 12,
                 children: [5, 10, 20, 30, 60]
                     .map((m) => ChoiceChip(
-                          label: Text('$m min'),
+                          label: Text('$m ${t.minShort}'),
                           selected: _selectedMinutes == m,
                           onSelected: (val) => setState(() => _selectedMinutes = m),
                         ))

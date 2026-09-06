@@ -63,13 +63,16 @@ class ChatService {
     _retryCount = 0;
 
     final deviceId = await ServerService.ensureDeviceId();
-    final url = '${ServerService.baseUrl}?device_id=$deviceId';
+    // Use header auth preferentially; query param kept for legacy compatibility but not logged
+    final url = ServerService.baseUrl;
     debugPrint('ChatService: connecting to $url');
 
     _cleanupSocket();
     _socket = IO.io(url, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
+      'extraHeaders': {'X-Device-ID': deviceId},
+      'auth': {'device_id': deviceId},
     });
 
     _socket!.onConnect((_) {

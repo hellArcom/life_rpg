@@ -69,7 +69,7 @@ class SkillsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            skill.category.label.toUpperCase(),
+                            t.translateCategory(skill.category.label).toUpperCase(),
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           Text('${t.level} ${skill.level}', style: const TextStyle(color: Colors.grey)),

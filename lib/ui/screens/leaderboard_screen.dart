@@ -11,7 +11,7 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
-  Translations get t => ref.read(translationsProvider);
+  Translations get t => ref.watch(translationsProvider);
   @override
   void initState() {
     super.initState();
@@ -64,7 +64,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('${t.level} ${entry.level}', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-                      Text('${entry.totalXp} XP', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('${entry.totalXp} ${t.xpShort}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
                     ],
                   ),
                 ],

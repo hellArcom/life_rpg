@@ -215,23 +215,35 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                 controller: emailController,
                 decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
                 keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: passwordController,
                 decoration: InputDecoration(labelText: t.password, border: const OutlineInputBorder()),
                 obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
+            TextButton(onPressed: () {
+              emailController.clear();
+              passwordController.clear();
+              Navigator.pop(context);
+            }, child: Text(t.cancel)),
             ElevatedButton(
               onPressed: loading ? null : () async {
                 setDialogState(() => loading = true);
+                final email = emailController.text.trim();
+                final pwd = passwordController.text;
+                // Clear immediately after capture to reduce memory residency
+                emailController.clear();
+                passwordController.clear();
                 final res = await ServerService.linkAccount(
-                  email: emailController.text.trim(),
-                  password: passwordController.text,
+                  email: email,
+                  password: pwd,
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -253,7 +265,10 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      emailController.dispose();
+      passwordController.dispose();
+    });
   }
 
   void _showCreateAccountDialog(BuildContext context) {
@@ -276,30 +291,45 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                   controller: emailController,
                   decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: usernameController,
                   decoration: InputDecoration(labelText: t.username, border: const OutlineInputBorder()),
+                  autofillHints: const [AutofillHints.newUsername],
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: passwordController,
                   decoration: InputDecoration(labelText: t.passwordMin, border: const OutlineInputBorder()),
                   obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
+            TextButton(onPressed: () {
+              emailController.clear();
+              usernameController.clear();
+              passwordController.clear();
+              Navigator.pop(context);
+            }, child: Text(t.cancel)),
             ElevatedButton(
               onPressed: loading ? null : () async {
                 setDialogState(() => loading = true);
+                final email = emailController.text.trim();
+                final username = usernameController.text.trim();
+                final pwd = passwordController.text;
+                emailController.clear();
+                usernameController.clear();
+                passwordController.clear();
                 final res = await ServerService.registerAccount(
-                  email: emailController.text.trim(),
-                  username: usernameController.text.trim(),
-                  password: passwordController.text,
+                  email: email,
+                  username: username,
+                  password: pwd,
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -321,7 +351,11 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      emailController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+    });
   }
 
   Future<void> _syncNow() async {
@@ -388,35 +422,50 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   Future<String?> _showPasswordDialog(String title, String message) async {
     final t = ref.watch(translationsProvider);
     final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: t.password,
-                border: const OutlineInputBorder(),
+    String? result;
+    try {
+      result = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: t.password,
+                  border: const OutlineInputBorder(),
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () {
+              controller.clear();
+              Navigator.pop(context);
+            }, child: Text(t.cancel)),
+            ElevatedButton(
+              onPressed: () {
+                final pwd = controller.text;
+                controller.clear();
+                Navigator.pop(context, pwd);
+              },
+              child: Text(t.confirm),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: Text(t.confirm),
-          ),
-        ],
-      ),
-    );
+      );
+    } finally {
+      controller.dispose();
+    }
+    return result;
   }
 
   bool _hasLocalData() {
@@ -485,13 +534,21 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
       ),
     );
     if (confirmed != true) return;
-    final res = await ServerService.unlinkAccount();
+    // Require password confirmation to prevent unauthorized unlink via device theft
+    String? pwd = await ServerService.getUserPassword();
+    if (pwd == null || pwd.isEmpty) {
+      pwd = await _showPasswordDialog(t.unlinkAccountConfirm, t.e2ePasswordMsg);
+      if (pwd == null || pwd.isEmpty) return;
+    }
+    final res = await ServerService.unlinkAccount(passwordOverride: pwd);
     if (!mounted) return;
     if (res != null && res['message'] != null) {
       NotificationService.showFeedback(t.success, res['message']);
       _loadStatus();
     } else {
-      NotificationService.showFeedback(t.error, res?['error'] ?? t.error);
+      final err = res?['error'];
+      final msg = err is Map ? err['message'] : err;
+      NotificationService.showFeedback(t.error, msg?.toString() ?? t.error);
     }
   }
 }

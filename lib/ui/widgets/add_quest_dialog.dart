@@ -11,7 +11,7 @@ void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? ini
   
   if (categories.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Créez d\'abord une catégorie de compétence dans les réglages.')),
+      SnackBar(content: Text(t.createCategoryFirst)),
     );
     return;
   }
@@ -93,7 +93,7 @@ void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? ini
                     ),
                     DropdownButtonFormField<QuestFrequency>(
                       initialValue: frequency,
-                      items: QuestFrequency.values.map((f) => DropdownMenuItem(value: f, child: Text(f.name))).toList(),
+                      items: QuestFrequency.values.map((f) => DropdownMenuItem(value: f, child: Text(t.translateFrequency(f.name)))).toList(),
                       onChanged: (v) => setState(() => frequency = v!),
                       decoration: InputDecoration(labelText: t.frequency),
                     ),
@@ -101,7 +101,7 @@ void showAddQuestDialog(BuildContext context, WidgetRef ref, {SkillCategory? ini
                 ),
                 DropdownButtonFormField<Difficulty>(
                   initialValue: difficulty,
-                  items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                  items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(t.translateDifficulty(d.name)))).toList(),
                   onChanged: (v) => setState(() => difficulty = v!),
                   decoration: InputDecoration(labelText: t.difficulty),
                 ),

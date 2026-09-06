@@ -13,11 +13,39 @@ import '../services/widget_service.dart';
 import '../core/offline_manager.dart';
 import '../core/data_migration.dart';
 import '../core/utils.dart';
+import '../core/translations.dart';
 
 Object _unset = Object();
 
 bool _chatSocketBound = false;
 String? _activeGuildId;
+
+/// XP nécessaire pour atteindre [level]. Courbe adoucie après 50 pour éviter le mur à 100+.
+int xpForLevel(int level) {
+  if (level <= 1) return 0;
+  if (level <= 50) return pow(level - 1, 2).toInt() * 100;
+  const base = 240100; // xp for 50
+  final extra = level - 50;
+  // 7000 linéaire + 40 quadratique doux
+  return base + extra * 7000 + pow(extra, 2).toInt() * 40;
+}
+
+/// Niveau déduit de l'XP totale (recherche linéaire, <1000 itérations max).
+int calculateLevelFromXp(int xp) {
+  if (xp < 0) return 1;
+  int lvl = 1;
+  // Avance rapide par paliers
+  while (xp >= xpForLevel(lvl + 1)) {
+    lvl++;
+    if (lvl > 999) break;
+  }
+  return lvl;
+}
+
+/// Bonus d'XP selon le niveau : +1.66% par niveau, cap 2.5x (niv 90+).
+double levelBonusFactor(int level) {
+  return (1.0 + level / 60.0).clamp(1.0, 3.0);
+}
 
 ChatMessage _chatMessageFromSocket(Map<String, dynamic> data, String guildId) {
   DateTime ts;
@@ -68,6 +96,7 @@ class GameState {
   final List<EveningEntry> eveningLog;
   final int dataVersion;
   final bool isAccountLinked;
+  final bool guildOffline;
   final Map<String, String> guildEncryptionKeys;
 
   GameState({
@@ -98,6 +127,7 @@ class GameState {
     this.guildLeaderboard = const [],
     this.dataVersion = 0,
     this.isAccountLinked = false,
+    this.guildOffline = false,
     this.guildEncryptionKeys = const {},
   }) : currentGuild = currentGuild;
 
@@ -130,6 +160,7 @@ GameState copyWith({
     List<EveningEntry>? eveningLog,
     int? dataVersion,
     bool? isAccountLinked,
+    bool? guildOffline,
     Map<String, String>? guildEncryptionKeys,
   }) {
     return GameState(
@@ -160,6 +191,7 @@ GameState copyWith({
       eveningLog: eveningLog ?? this.eveningLog,
       dataVersion: dataVersion ?? this.dataVersion,
       isAccountLinked: isAccountLinked ?? this.isAccountLinked,
+      guildOffline: guildOffline ?? this.guildOffline,
       guildEncryptionKeys: guildEncryptionKeys ?? this.guildEncryptionKeys,
     );
   }
@@ -182,6 +214,7 @@ GameState copyWith({
     'eveningLog': eveningLog.map((e) => e.toJson()).toList(),
     'dataVersion': dataVersion,
     'isAccountLinked': isAccountLinked,
+    'guildOffline': guildOffline,
     'currentGuild': currentGuild?.toJson(),
     'availableGuilds': availableGuilds.map((g) => g.toJson()).toList(),
     'myGuilds': myGuilds.map((g) => g.toJson()).toList(),
@@ -192,54 +225,111 @@ GameState copyWith({
     'guildLogs': guildLogs.map((l) => l.toJson()).toList(),
     'guildMessages': guildMessages.map((m) => m.toJson()).toList(),
     'leaderboard': leaderboard.map((l) => l.toJson()).toList(),
-    'guildEncryptionKeys': guildEncryptionKeys,
+    // Do NOT persist guild encryption keys in Hive (plaintext leak); keep only in SecureStorage
+    'guildEncryptionKeys': <String, String>{},
   };
 
+  static List<T> _safeList<T>(dynamic raw, T Function(dynamic) parser) {
+    if (raw is! List) return [];
+    final out = <T>[];
+    for (final e in raw) {
+      try {
+        out.add(parser(e));
+      } catch (_) {}
+    }
+    return out;
+  }
+
+  static DateTime? _safeDate(dynamic raw) {
+    if (raw is! String) return null;
+    try {
+      return DateTime.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
   factory GameState.fromJson(Map<String, dynamic> json) {
-    final userJson = json['user'] as Map<String, dynamic>?;
-    final skillsJson = json['skills'] as List<dynamic>?;
-    final questsJson = json['quests'] as List<dynamic>?;
-    final rewardsJson = json['rewards'] as List<dynamic>?;
-    final categoriesJson = json['categories'] as List<dynamic>?;
-    final betsJson = json['bets'] as List<dynamic>?;
-    final badgesJson = json['availableBadges'] as List<dynamic>?;
+    Map<String, dynamic>? userJson;
+    try {
+      final u = json['user'];
+      if (u is Map) userJson = Map<String, dynamic>.from(u);
+    } catch (_) {}
+    List<dynamic>? skillsJson = json['skills'] is List ? json['skills'] as List : null;
+    List<dynamic>? questsJson = json['quests'] is List ? json['quests'] as List : null;
+    List<dynamic>? rewardsJson = json['rewards'] is List ? json['rewards'] as List : null;
+    List<dynamic>? categoriesJson = json['categories'] is List ? json['categories'] as List : null;
+    List<dynamic>? betsJson = json['bets'] is List ? json['bets'] as List : null;
+    List<dynamic>? badgesJson = json['availableBadges'] is List ? json['availableBadges'] as List : null;
+
+    int safeInt(dynamic v, int fallback) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return fallback;
+    }
+
+    Map<String, String> safeKeys(dynamic raw) {
+      if (raw is Map) {
+        try {
+          return raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+        } catch (_) {}
+      }
+      return {};
+    }
 
     return GameState(
       user: userJson != null ? UserProfile.fromJson(userJson) : UserProfile(uid: '1', pseudo: 'Héros', title: 'Novice', globalXp: 0, level: 1, streak: 0),
-      skills: skillsJson?.map((s) => Skill.fromJson(s as Map<String, dynamic>)).toList() ?? [],
-      quests: questsJson?.map((q) => Quest.fromJson(q as Map<String, dynamic>)).toList() ?? [],
-      rewards: rewardsJson?.map((r) => Reward.fromJson(r as Map<String, dynamic>)).toList() ?? [],
-      categories: categoriesJson?.map((c) => SkillCategory.fromJson(c as Map<String, dynamic>)).toList() ?? [],
-      bets: betsJson?.map((b) => Bet.fromJson(b as Map<String, dynamic>)).toList() ?? [],
-      availableBadges: badgesJson?.map((b) => GameBadge.fromJson(b as Map<String, dynamic>)).toList() ?? [],
-      shopItems: (json['shopItems'] as List<dynamic>?)?.map((s) => ShopItem.fromJson(s)).toList() ?? [],
-      lootBoxes: (json['lootBoxes'] as List<dynamic>?)?.map((l) => LootBox.fromJson(l)).toList() ?? [],
-      lootBoxProgress: max(0, json['lootBoxProgress'] ?? 0),
+      skills: _safeList<Skill>(skillsJson, (s) => Skill.fromJson(s as Map<String, dynamic>)),
+      quests: _safeList<Quest>(questsJson, (q) => Quest.fromJson(q as Map<String, dynamic>)),
+      rewards: _safeList<Reward>(rewardsJson, (r) => Reward.fromJson(r as Map<String, dynamic>)),
+      categories: _safeList<SkillCategory>(categoriesJson, (c) => SkillCategory.fromJson(c as Map<String, dynamic>)),
+      bets: _safeList<Bet>(betsJson, (b) => Bet.fromJson(b as Map<String, dynamic>)),
+      availableBadges: _safeList<GameBadge>(badgesJson, (b) => GameBadge.fromJson(b as Map<String, dynamic>)),
+      shopItems: _safeList<ShopItem>(json['shopItems'], (s) => ShopItem.fromJson(s as Map<String, dynamic>)),
+      lootBoxes: _safeList<LootBox>(json['lootBoxes'], (l) => LootBox.fromJson(l as Map<String, dynamic>)),
+      lootBoxProgress: max(0, safeInt(json['lootBoxProgress'], 0)),
       weeklyXpLog: _parseWeeklyXpLog(json['weeklyXpLog']),
-      lastWeeklyLogWeekStart: json['lastWeeklyLogWeekStart'] != null ? DateTime.parse(json['lastWeeklyLogWeekStart']) : null,
-      lastPenaltyDate: json['lastPenaltyDate'] != null ? DateTime.parse(json['lastPenaltyDate']) : null,
+      lastWeeklyLogWeekStart: _safeDate(json['lastWeeklyLogWeekStart']),
+      lastPenaltyDate: _safeDate(json['lastPenaltyDate']),
       celebrationPending: false,
-      eveningLog: (json['eveningLog'] as List<dynamic>?)?.map((e) => EveningEntry.fromJson(e)).toList() ?? [],
-      dataVersion: json['dataVersion'] ?? 0,
-      isAccountLinked: json['isAccountLinked'] ?? false,
-      currentGuild: json['currentGuild'] != null ? Guild.fromJson(json['currentGuild']) : null,
-      availableGuilds: (json['availableGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
-      myGuilds: (json['myGuilds'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
-      guildLeaderboard: (json['guildLeaderboard'] as List<dynamic>?)?.map((g) => Guild.fromJson(g)).toList() ?? [],
-      guildMembers: (json['guildMembers'] as List<dynamic>?)?.map((m) => GuildMember.fromJson(m)).toList() ?? [],
-      guildInvitations: (json['guildInvitations'] as List<dynamic>?)?.map((i) => GuildInvitation.fromJson(i)).toList() ?? [],
-      guildQuests: (json['guildQuests'] as List<dynamic>?)?.map((q) => GuildQuest.fromJson(q)).toList() ?? [],
-      guildLogs: (json['guildLogs'] as List<dynamic>?)?.map((l) => GuildLog.fromJson(l)).toList() ?? [],
-      guildMessages: (json['guildMessages'] as List<dynamic>?)?.map((m) => ChatMessage.fromJson(m)).toList() ?? [],
-      leaderboard: (json['leaderboard'] as List<dynamic>?)?.map((l) => LeaderboardEntry.fromJson(l)).toList() ?? [],
-      guildEncryptionKeys: (json['guildEncryptionKeys'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as String)) ?? {},
+      eveningLog: _safeList<EveningEntry>(json['eveningLog'], (e) => EveningEntry.fromJson(e as Map<String, dynamic>)),
+      dataVersion: safeInt(json['dataVersion'], 0),
+      isAccountLinked: json['isAccountLinked'] == true,
+      guildOffline: json['guildOffline'] == true,
+      currentGuild: (() {
+        try {
+          final cg = json['currentGuild'];
+          if (cg is Map) return Guild.fromJson(Map<String, dynamic>.from(cg));
+        } catch (_) {}
+        return null;
+      })(),
+      availableGuilds: _safeList<Guild>(json['availableGuilds'], (g) => Guild.fromJson(g as Map<String, dynamic>)),
+      myGuilds: _safeList<Guild>(json['myGuilds'], (g) => Guild.fromJson(g as Map<String, dynamic>)),
+      guildLeaderboard: _safeList<Guild>(json['guildLeaderboard'], (g) => Guild.fromJson(g as Map<String, dynamic>)),
+      guildMembers: _safeList<GuildMember>(json['guildMembers'], (m) => GuildMember.fromJson(m as Map<String, dynamic>)),
+      guildInvitations: _safeList<GuildInvitation>(json['guildInvitations'], (i) => GuildInvitation.fromJson(i as Map<String, dynamic>)),
+      guildQuests: _safeList<GuildQuest>(json['guildQuests'], (q) => GuildQuest.fromJson(q as Map<String, dynamic>)),
+      guildLogs: _safeList<GuildLog>(json['guildLogs'], (l) => GuildLog.fromJson(l as Map<String, dynamic>)),
+      guildMessages: _safeList<ChatMessage>(json['guildMessages'], (m) => ChatMessage.fromJson(m as Map<String, dynamic>)),
+      leaderboard: _safeList<LeaderboardEntry>(json['leaderboard'], (l) => LeaderboardEntry.fromJson(l as Map<String, dynamic>)),
+      guildEncryptionKeys: safeKeys(json['guildEncryptionKeys']),
     );
   }
 
   static List<int> _parseWeeklyXpLog(dynamic raw) {
-    final list = List<int>.from(raw ?? []);
-    if (list.length != 7) return List.filled(7, 0);
-    return list;
+    try {
+      if (raw is! List) return List.filled(7, 0);
+      final list = <int>[];
+      for (final v in raw) {
+        if (v is int) list.add(v);
+        else if (v is num) list.add(v.toInt());
+        else list.add(0);
+      }
+      if (list.length != 7) return List.filled(7, 0);
+      return list;
+    } catch (_) {
+      return List.filled(7, 0);
+    }
   }
 }
 
@@ -258,9 +348,18 @@ class GameNotifier extends Notifier<GameState> {
           }
         }
         final migrated = migrateData(savedData);
-        final loaded = GameState.fromJson(migrated);
         if (needsMigration) {
           OfflineManager.saveData('game_data', migrated);
+        }
+        var loaded = GameState.fromJson(migrated);
+        // Recalcule le niveau avec la nouvelle courbe adoucie si incohérent
+        final correctLevel = calculateLevelFromXp(loaded.user.globalXp);
+        if (loaded.user.level != correctLevel) {
+          loaded = loaded.copyWith(user: loaded.user.copyWith(level: correctLevel));
+          // Corrige aussi les niveaux de compétences
+          final fixedSkills = loaded.skills.map((s) => s.copyWith(level: calculateLevelFromXp(s.xp))).toList();
+          loaded = loaded.copyWith(skills: fixedSkills);
+          OfflineManager.saveData('game_data', loaded.toJson());
         }
         Future.microtask(() { try { checkBadges(); } catch (_) {} });
         return loaded;
@@ -350,8 +449,8 @@ class GameNotifier extends Notifier<GameState> {
           coins: user.coins,
         );
 
-        final xpForCurrent = (user.level - 1) * (user.level - 1) * 100;
-        final xpForNext = user.level * user.level * 100;
+        final xpForCurrent = xpForLevel(user.level);
+        final xpForNext = xpForLevel(user.level + 1);
         WidgetService.updateProgressWidget(
           level: user.level,
           xp: user.globalXp,
@@ -634,7 +733,9 @@ class GameNotifier extends Notifier<GameState> {
     );
     _saveAllToHive();
 
-    final msg = '+$coinReward pièces${gotBadge ? '\n🎲 Badge spécial débloqué !' : ''}';
+    // Build localized message using current locale (fallback to fr-style if needed)
+    final t = ref.read(translationsProvider);
+    final msg = '+$coinReward ${t.coinsLabel.toLowerCase()}${gotBadge ? '\n🎲 ${t.lootBoxBadgeUnlocked}' : ''}';
     return msg;
   }
 
@@ -796,7 +897,8 @@ class GameNotifier extends Notifier<GameState> {
   }
 
   void addFocusXp(int minutes) {
-    final xpGain = minutes * 5;
+    final bonus = levelBonusFactor(state.user.level);
+    final xpGain = (minutes * 5 * bonus * state.user.xpMultiplier).round();
     final newGlobalXp = state.user.globalXp + xpGain;
     
     final currentBadgeIds = List<String>.from(state.user.badgeIds);
@@ -1006,7 +1108,7 @@ class GameNotifier extends Notifier<GameState> {
     if (status != null) {
       final linked = status['linked'] == true;
       if (state.isAccountLinked != linked) {
-        state = state.copyWith(isAccountLinked: linked);
+        state = state.copyWith(isAccountLinked: linked, guildOffline: !linked);
         _saveAllToHive();
       }
     }
@@ -1021,6 +1123,7 @@ class GameNotifier extends Notifier<GameState> {
         final reg = await ServerService.register(code);
         if (reg == null) {
           await NotificationService.showFeedback('Sync', 'Échec de l\'enregistrement : serveur inaccessible');
+          state = state.copyWith(guildOffline: true);
           return;
         }
         _adoptServerReferralCode(reg['referral_code']);
@@ -1028,6 +1131,7 @@ class GameNotifier extends Notifier<GameState> {
       final res = await ServerService.ping();
       if (res == null) {
         await NotificationService.showFeedback('Sync', 'Serveur inaccessible (ping échoué)');
+        state = state.copyWith(guildOffline: true);
         return;
       }
       _adoptServerReferralCode(res['referral_code']);
@@ -1036,6 +1140,9 @@ class GameNotifier extends Notifier<GameState> {
         await _applyServerRewards(rewards);
       }
       await checkAccountLinkStatus();
+      if (!state.isAccountLinked) {
+        state = state.copyWith(guildOffline: true);
+      }
       
       // Récupérer le mot de passe stocké pour le chiffrement E2E
       final password = await ServerService.getUserPassword();
@@ -1224,9 +1331,10 @@ class GameNotifier extends Notifier<GameState> {
     final updatedQuests = List<Quest>.from(state.quests);
     updatedQuests[questIndex] = updatedQuest;
 
+    final bonus = levelBonusFactor(state.user.level);
     final xpAdjustment = isNowCompleted
-        ? (quest.xpRewardValue * state.user.xpMultiplier).round()
-        : -(quest.xpRewardValue * state.user.xpMultiplier).round();
+        ? (quest.xpRewardValue * state.user.xpMultiplier * bonus).round()
+        : -(quest.xpRewardValue * state.user.xpMultiplier * bonus).round();
     final newGlobalXp = max(0, state.user.globalXp + xpAdjustment);
 
     final updatedSkills = List<Skill>.from(state.skills);
@@ -1297,7 +1405,7 @@ class GameNotifier extends Notifier<GameState> {
     }
   }
 
-  int _calculateLevel(int xp) => (sqrt(xp / 100)).floor() + 1;
+  int _calculateLevel(int xp) => calculateLevelFromXp(xp);
 
   Future<void> joinGuild(String guildId) async {
     final res = await ServerService.joinGuild(guildId);
@@ -1573,7 +1681,7 @@ class GameNotifier extends Notifier<GameState> {
     final myGuilds = await ServerService.getMyGuilds();
     if (myGuilds != null) {
       final guilds = myGuilds.map((g) => Guild.fromJson(g)).toList();
-      state = state.copyWith(myGuilds: guilds);
+      state = state.copyWith(myGuilds: guilds, guildOffline: false);
       if (guilds.isNotEmpty) {
         // Use existing currentGuild if set, otherwise auto-select first guild
         final guild = state.currentGuild ?? guilds.first;
@@ -1585,6 +1693,8 @@ class GameNotifier extends Notifier<GameState> {
           _connectChat(guild);
         }
       }
+    } else {
+      state = state.copyWith(guildOffline: true);
     }
     final availableGuilds = await ServerService.getGuilds();
     if (availableGuilds != null) {

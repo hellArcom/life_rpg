@@ -354,37 +354,64 @@ class UserProfile {
     'referralSubmitted': referralSubmitted,
   };
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    uid: json['uid'],
-    pseudo: json['pseudo'],
-    avatarUrl: json['avatarUrl'],
-    title: json['title'],
-    globalXp: json['globalXp'] ?? 0,
-    level: json['level'] ?? 1,
-    streak: json['streak'] ?? 0,
-    lastCheckIn: json['lastCheckIn'] != null ? DateTime.parse(json['lastCheckIn']) : null,
-    badgeIds: List<String>.from(json['badgeIds'] ?? json['badges'] ?? []),
-    coins: json['coins'] ?? 0,
-    soundVolume: (json['soundVolume'] ?? (json['soundEnabled'] == false ? 0.0 : 0.7)).toDouble(),
-    hapticLevel: json['hapticLevel'] ?? (json['soundEnabled'] == false ? 0 : 2),
-    streakFreezeDaysLeft: json['streakFreezeDaysLeft'] ?? (json['streakFreezeActive'] == true ? 1 : 0),
-    dailyRewardDay: json['dailyRewardDay'] ?? 0,
-    lastDailyRewardDate: json['lastDailyRewardDate'] != null ? DateTime.parse(json['lastDailyRewardDate']) : null,
-    characterParts: Map<String, String>.from(json['characterParts'] ?? const {
-      'skin': 'skin_1', 'hair': 'hair_1', 'eyes': 'eyes_1',
-      'brow': 'brow_1', 'mouth': 'mouth_1', 'outfit': 'outfit_1',
-      'hat': 'hat_0', 'acc': 'acc_0',
-    }),
-    unlockedCharacterParts: List<String>.from(json['unlockedCharacterParts'] ?? const [
-      'skin_1', 'skin_2', 'skin_3',
-      'hair_1', 'eyes_1', 'brow_1', 'mouth_1', 'outfit_1', 'hat_0', 'acc_0',
-    ]),
-    xpMultiplier: (json['xpMultiplier'] ?? 1.0).toDouble(),
-    claimedStreakMilestones: List<int>.from(json['claimedStreakMilestones'] ?? []),
-    referralCode: json['referralCode'] ?? '',
-    referredBy: json['referredBy'],
-    referralSubmitted: json['referralSubmitted'] ?? false,
-  );
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    int _safeInt(dynamic v, int fb) => v is int ? v : (v is num ? v.toInt() : fb);
+    double _safeDouble(dynamic v, double fb) {
+      if (v is double) return v;
+      if (v is int) return v.toDouble();
+      if (v is num) return v.toDouble();
+      return fb;
+    }
+    DateTime? _safeDate(dynamic v) {
+      if (v is! String) return null;
+      try { return DateTime.parse(v); } catch (_) { return null; }
+    }
+    List<String> _safeStrList(dynamic v) {
+      if (v is List) return v.whereType<String>().toList();
+      return [];
+    }
+    Map<String, String> _safeStrMap(dynamic v, Map<String,String> fb) {
+      if (v is Map) {
+        try { return Map<String,String>.from(v.map((k,val)=>MapEntry(k.toString(), val.toString()))); } catch(_){}
+      }
+      return fb;
+    }
+    const defParts = {'skin': 'skin_1','hair': 'hair_1','eyes': 'eyes_1','brow': 'brow_1','mouth': 'mouth_1','outfit': 'outfit_1','hat': 'hat_0','acc': 'acc_0'};
+    const defUnlocked = ['skin_1','skin_2','skin_3','hair_1','eyes_1','brow_1','mouth_1','outfit_1','hat_0','acc_0'];
+    return UserProfile(
+      uid: json['uid']?.toString() ?? '1',
+      pseudo: json['pseudo']?.toString() ?? 'Héros',
+      avatarUrl: json['avatarUrl']?.toString(),
+      title: json['title']?.toString(),
+      globalXp: _safeInt(json['globalXp'], 0),
+      level: _safeInt(json['level'], 1),
+      streak: _safeInt(json['streak'], 0),
+      lastCheckIn: _safeDate(json['lastCheckIn']),
+      badgeIds: _safeStrList(json['badgeIds'] ?? json['badges']),
+      coins: _safeInt(json['coins'], 0),
+      soundVolume: _safeDouble(json['soundVolume'] ?? (json['soundEnabled'] == false ? 0.0 : 0.7), 0.7),
+      hapticLevel: _safeInt(json['hapticLevel'] ?? (json['soundEnabled'] == false ? 0 : 2), 2),
+      streakFreezeDaysLeft: _safeInt(json['streakFreezeDaysLeft'] ?? (json['streakFreezeActive'] == true ? 1 : 0), 0),
+      dailyRewardDay: _safeInt(json['dailyRewardDay'], 0),
+      lastDailyRewardDate: _safeDate(json['lastDailyRewardDate']),
+      characterParts: _safeStrMap(json['characterParts'], defParts),
+      unlockedCharacterParts: _safeStrList(json['unlockedCharacterParts']).isEmpty ? defUnlocked : _safeStrList(json['unlockedCharacterParts']),
+      xpMultiplier: _safeDouble(json['xpMultiplier'], 1.0),
+      claimedStreakMilestones: (() {
+        final raw = json['claimedStreakMilestones'];
+        if (raw is List) return raw.whereType<int>().toList();
+        if (raw is List) {
+          final out=<int>[];
+          for(final v in raw){ if(v is int) out.add(v); else if(v is num) out.add(v.toInt());}
+          return out;
+        }
+        return <int>[];
+      })(),
+      referralCode: json['referralCode']?.toString() ?? '',
+      referredBy: json['referredBy']?.toString(),
+      referralSubmitted: json['referralSubmitted'] == true,
+    );
+  }
 }
 
 class Skill {
