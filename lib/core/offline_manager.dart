@@ -57,4 +57,13 @@ class OfflineManager {
     final results = await (Connectivity().checkConnectivity());
     return results.any((r) => r != ConnectivityResult.none);
   }
+
+  static Future<void> deleteData(String key) async {
+    try {
+      final box = Hive.box('game_data');
+      await box.delete(key);
+    } catch (e) {
+      debugPrint("Erreur suppression Hive ($key): $e");
+    }
+  }
 }

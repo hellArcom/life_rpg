@@ -654,4 +654,69 @@ class ServerService {
       return '0.0.0';
     }
   }
+
+  // ====== RGPD / GESTION DU COMPTE ======
+
+  /// Change le mot de passe de l'utilisateur (RGPD - droit de rectification).
+  static Future<Map<String, dynamic>?> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    };
+    return _post('/api/v1/account/update-password', body);
+  }
+
+  /// Change l'adresse email de l'utilisateur (RGPD - droit de rectification).
+  static Future<Map<String, dynamic>?> updateEmail({
+    required String password,
+    required String newEmail,
+  }) async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+      'password': password,
+      'new_email': newEmail,
+    };
+    return _post('/api/v1/account/update-email', body);
+  }
+
+  /// Change le pseudo de l'utilisateur (RGPD - droit de rectification).
+  static Future<Map<String, dynamic>?> updateUsername({
+    required String password,
+    required String newUsername,
+  }) async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+      'password': password,
+      'new_username': newUsername,
+    };
+    return _post('/api/v1/account/update-username', body);
+  }
+
+  /// Exporte toutes les données utilisateur depuis le serveur (RGPD - droit à la portabilité).
+  static Future<Map<String, dynamic>?> exportUserData() async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+    };
+    return _post('/api/v1/account/export', body);
+  }
+
+  /// Supprime toutes les données utilisateur du serveur (RGPD - droit à l'effacement).
+  static Future<Map<String, dynamic>?> deleteUserData({
+    required String password,
+  }) async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+      'password': password,
+    };
+    return _post('/api/v1/account/delete-data', body);
+  }
+
+  /// Récupère les documents légaux (CGU, Politique de Confidentialité).
+  static Future<Map<String, dynamic>?> fetchLegalDocuments() async {
+    return _get('/api/v1/legal');
+  }
 }

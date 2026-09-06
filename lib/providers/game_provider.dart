@@ -1078,6 +1078,112 @@ class GameNotifier extends Notifier<GameState> {
     _saveAllToHive();
   }
 
+  // ====== RGPD / DONNÉES UTILISATEUR ======
+
+  /// Exporte les données utilisateur dans un format JSON lisible pour le client.
+  String exportReadableData() {
+    final user = state.user;
+    final export = <String, dynamic>{
+      'export_date': DateTime.now().toIso8601String(),
+      'application': 'Life RPG',
+      'profil': {
+        'pseudo': user.pseudo,
+        'titre': user.currentTitle,
+        'niveau': user.level,
+        'xp_globale': user.globalXp,
+        'pieces': user.coins,
+        'serie': user.streak,
+        'code_parrainage': user.referralCode,
+      },
+      'competences': state.skills.map((s) => {
+        'categorie': s.category.label,
+        'niveau': s.level,
+        'xp': s.xp,
+        'historique_xp': s.xpHistory,
+      }).toList(),
+      'quetes': state.quests.map((q) => {
+        'titre': q.title,
+        'description': q.description,
+        'difficulte': q.difficulty.name,
+        'frequence': q.frequency.name,
+        'statut': q.status.name,
+        'categorie': q.category.label,
+        'recompense_xp': q.xpRewardValue,
+        'date_creation': q.createdAt.toIso8601String(),
+        'derniere_completion': q.lastCompletedDate?.toIso8601String(),
+      }).toList(),
+      'recompenses': state.rewards.map((r) => {
+        'titre': r.title,
+        'description': r.description,
+      }).toList(),
+      'paris': state.bets.map((b) => {
+        'titre': b.title,
+        'statut': b.status.name,
+        'recompense_xp': b.rewardXp,
+        'penalite_xp': b.penaltyXp,
+        'date_echeance': b.deadline.toIso8601String(),
+      }).toList(),
+      'journal_soiree': state.eveningLog.map((e) => {
+        'date': e.date.toIso8601String(),
+        'texte': e.text,
+        'humeur': e.mood,
+        'recompense_pieces': e.coinReward,
+      }).toList(),
+      'badges': state.availableBadges.where((b) => user.badgeIds.contains(b.id)).map((b) => {
+        'titre': b.title,
+        'description': b.description,
+      }).toList(),
+      'personnalisation': {
+        'parties_equipees': user.characterParts,
+        'parties_debloquees': user.unlockedCharacterParts,
+      },
+      'parametres': {
+        'volume_sonore': user.soundVolume,
+        'niveau_haptique': user.hapticLevel,
+        'multiplicateur_xp': user.xpMultiplier,
+      },
+      'compte': {
+        'id_utilisateur': user.uid,
+        'compte_lie': state.isAccountLinked,
+      },
+    };
+    return const JsonEncoder.withIndent('  ').convert(export);
+  }
+
+  /// Supprime toutes les données utilisateur (locale + serveur).
+  Future<bool> deleteAllUserData({required String password}) async {
+    try {
+      // Supprimer les données du serveur
+      final res = await ServerService.deleteUserData(password: password);
+      if (res == null) {
+        NotificationService.showFeedback("Erreur", "Impossible de supprimer les données du serveur");
+        return false;
+      }
+      final errorMsg = res['error'];
+      if (errorMsg != null) {
+        final msg = errorMsg is Map ? (errorMsg['message']?.toString() ?? 'Erreur') : errorMsg.toString();
+        NotificationService.showFeedback("Erreur", msg);
+        return false;
+      }
+
+      // Supprimer les données locales
+      OfflineManager.deleteData('game_data');
+      OfflineManager.deleteData('game_data_backup');
+      OfflineManager.deleteData('server_registered');
+      OfflineManager.deleteData('applied_server_rewards');
+      await ServerService.clearUserPassword();
+
+      // Réinitialiser l'état
+      state = _buildDefaultState();
+      NotificationService.showFeedback("Données supprimées", "Toutes vos données ont été supprimées");
+      return true;
+    } catch (e) {
+      debugPrint('deleteAllUserData: $e');
+      NotificationService.showFeedback("Erreur", "Une erreur est survenue lors de la suppression");
+      return false;
+    }
+  }
+
   // ====== PARRAINAGE & SERVEUR ======
 
   static const int referrerRewardCoins = 250;

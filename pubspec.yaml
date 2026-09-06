@@ -49,6 +49,7 @@ flutter:
   assets:
     - assets/sounds/
     - assets/characters/
+    - assets/CGU.md
   fonts:
     - family: Montserrat
       fonts:

@@ -369,6 +369,41 @@ class Translations {
   String get hourShort => get('hourShort');
   String get lootBoxBadgeUnlocked => get('lootBoxBadgeUnlocked');
 
+  // RGPD / Données personnelles
+  String get gdpr => get('gdpr');
+  String get gdprDesc => get('gdprDesc');
+  String get changePassword => get('changePassword');
+  String get changeEmail => get('changeEmail');
+  String get changeUsername => get('changeUsername');
+  String get currentPassword => get('currentPassword');
+  String get newPassword => get('newPassword');
+  String get confirmNewPassword => get('confirmNewPassword');
+  String get newEmail => get('newEmail');
+  String get newUsername => get('newUsername');
+  String get passwordUpdated => get('passwordUpdated');
+  String get emailUpdated => get('emailUpdated');
+  String get usernameUpdated => get('usernameUpdated');
+  String get passwordMismatch => get('passwordMismatch');
+  String get passwordRequired => get('passwordRequired');
+  String get exportMyData => get('exportMyData');
+  String get exportMyDataDesc => get('exportMyDataDesc');
+  String get deleteMyData => get('deleteMyData');
+  String get deleteMyDataDesc => get('deleteMyDataDesc');
+  String get deleteDataConfirm => get('deleteDataConfirm');
+  String get deleteDataWarning => get('deleteDataWarning');
+  String get deleteDataConfirmMsg => get('deleteDataConfirmMsg');
+  String get dataDeleted => get('dataDeleted');
+  String get dataExported => get('dataExported');
+  String get legalDocuments => get('legalDocuments');
+  String get legalDocumentsDesc => get('legalDocumentsDesc');
+  String get cgu => get('cgu');
+  String get privacyPolicy => get('privacyPolicy');
+  String get legalNotices => get('legalNotices');
+  String get readableData => get('readableData');
+  String get readableDataDesc => get('readableDataDesc');
+  String get exportError => get('exportError');
+  String get passwordMin8 => get('passwordMin8');
+
   String translateDifficulty(String name) => get('difficulty_$name');
   String translateFrequency(String name) => get('frequency_$name');
 
@@ -778,6 +813,40 @@ final Map<String, Map<String, String>> _translationsData = {
     'donate': 'Faire un don',
     'donateDesc': 'Soutenir le développement de l\'application',
     'guildOffline': 'Hors ligne — données en cache',
+    // RGPD / Données personnelles
+    'gdpr': 'Données personnelles',
+    'gdprDesc': 'Gestion de vos données et paramètres de confidentialité',
+    'changePassword': 'Changer le mot de passe',
+    'changeEmail': 'Changer l\'email',
+    'changeUsername': 'Changer le pseudo',
+    'currentPassword': 'Mot de passe actuel',
+    'newPassword': 'Nouveau mot de passe',
+    'confirmNewPassword': 'Confirmer le nouveau mot de passe',
+    'newEmail': 'Nouvel email',
+    'newUsername': 'Nouveau pseudo',
+    'passwordUpdated': 'Mot de passe mis à jour',
+    'emailUpdated': 'Email mis à jour',
+    'usernameUpdated': 'Pseudo mis à jour',
+    'passwordMismatch': 'Les mots de passe ne correspondent pas',
+    'passwordRequired': 'Mot de passe requis',
+    'exportMyData': 'Exporter mes données',
+    'exportMyDataDesc': 'Télécharger une copie de toutes vos données personnelles',
+    'deleteMyData': 'Supprimer mes données',
+    'deleteMyDataDesc': 'Suppression définitive de votre compte et de toutes vos données',
+    'deleteDataConfirm': 'Confirmer la suppression',
+    'deleteDataWarning': 'Cette action est irréversible. Toutes vos données seront définitivement supprimées.',
+    'deleteDataConfirmMsg': 'Entrez votre mot de passe pour confirmer la suppression de toutes vos données.',
+    'dataDeleted': 'Données supprimées',
+    'dataExported': 'Données exportées',
+    'legalDocuments': 'Documents légaux',
+    'legalDocumentsDesc': 'CGU, Politique de Confidentialité et Mentions Légales',
+    'cgu': 'Conditions Générales d\'Utilisation',
+    'privacyPolicy': 'Politique de Confidentialité',
+    'legalNotices': 'Mentions Légales',
+    'readableData': 'Données lisibles',
+    'readableDataDesc': 'Exporter vos données dans un format facile à lire',
+    'exportError': 'Erreur lors de l\'export',
+    'passwordMin8': 'Le mot de passe doit faire au moins 8 caractères',
   },
   'en': {
     'streak': 'Streak',
@@ -1161,6 +1230,40 @@ final Map<String, Map<String, String>> _translationsData = {
     'donate': 'Donate',
     'donateDesc': 'Support the app\'s development',
     'guildOffline': 'Offline — cached data',
+    // GDPR / Personal Data
+    'gdpr': 'Personal Data',
+    'gdprDesc': 'Manage your data and privacy settings',
+    'changePassword': 'Change Password',
+    'changeEmail': 'Change Email',
+    'changeUsername': 'Change Username',
+    'currentPassword': 'Current Password',
+    'newPassword': 'New Password',
+    'confirmNewPassword': 'Confirm New Password',
+    'newEmail': 'New Email',
+    'newUsername': 'New Username',
+    'passwordUpdated': 'Password Updated',
+    'emailUpdated': 'Email Updated',
+    'usernameUpdated': 'Username Updated',
+    'passwordMismatch': 'Passwords do not match',
+    'passwordRequired': 'Password required',
+    'exportMyData': 'Export My Data',
+    'exportMyDataDesc': 'Download a copy of all your personal data',
+    'deleteMyData': 'Delete My Data',
+    'deleteMyDataDesc': 'Permanent deletion of your account and all your data',
+    'deleteDataConfirm': 'Confirm Deletion',
+    'deleteDataWarning': 'This action is irreversible. All your data will be permanently deleted.',
+    'deleteDataConfirmMsg': 'Enter your password to confirm the deletion of all your data.',
+    'dataDeleted': 'Data Deleted',
+    'dataExported': 'Data Exported',
+    'legalDocuments': 'Legal Documents',
+    'legalDocumentsDesc': 'Terms of Service, Privacy Policy and Legal Notices',
+    'cgu': 'Terms of Service',
+    'privacyPolicy': 'Privacy Policy',
+    'legalNotices': 'Legal Notices',
+    'readableData': 'Readable Data',
+    'readableDataDesc': 'Export your data in an easy-to-read format',
+    'exportError': 'Export Error',
+    'passwordMin8': 'Password must be at least 8 characters',
   },
   'es': {
     'settings': 'CONFIGURACIÓN',
@@ -1537,7 +1640,42 @@ final Map<String, Map<String, String>> _translationsData = {
     'lootbox_silver': 'Cofre Plata',
     'lootbox_gold': 'Cofre Oro',
     'cat_Général': 'General',
-    'lootBoxBadgeUnlocked': '¡Insignia especial desbloqueada!'},
+    'lootBoxBadgeUnlocked': '¡Insignia especial desbloqueada!',
+    // RGPD / Datos personales
+    'gdpr': 'Datos personales',
+    'gdprDesc': 'Gestiona tus datos y configuración de privacidad',
+    'changePassword': 'Cambiar contraseña',
+    'changeEmail': 'Cambiar email',
+    'changeUsername': 'Cambiar nombre de usuario',
+    'currentPassword': 'Contraseña actual',
+    'newPassword': 'Nueva contraseña',
+    'confirmNewPassword': 'Confirmar nueva contraseña',
+    'newEmail': 'Nuevo email',
+    'newUsername': 'Nuevo nombre de usuario',
+    'passwordUpdated': 'Contraseña actualizada',
+    'emailUpdated': 'Email actualizado',
+    'usernameUpdated': 'Nombre de usuario actualizado',
+    'passwordMismatch': 'Las contraseñas no coinciden',
+    'passwordRequired': 'Contraseña requerida',
+    'exportMyData': 'Exportar mis datos',
+    'exportMyDataDesc': 'Descargar una copia de todos tus datos personales',
+    'deleteMyData': 'Eliminar mis datos',
+    'deleteMyDataDesc': 'Eliminación permanente de tu cuenta y todos tus datos',
+    'deleteDataConfirm': 'Confirmar eliminación',
+    'deleteDataWarning': 'Esta acción es irreversible. Todos tus datos serán eliminados permanentemente.',
+    'deleteDataConfirmMsg': 'Introduce tu contraseña para confirmar la eliminación de todos tus datos.',
+    'dataDeleted': 'Datos eliminados',
+    'dataExported': 'Datos exportados',
+    'legalDocuments': 'Documentos legales',
+    'legalDocumentsDesc': 'Términos de uso, Política de Privacidad y Avisos Legales',
+    'cgu': 'Términos de Uso',
+    'privacyPolicy': 'Política de Privacidad',
+    'legalNotices': 'Avisos Legales',
+    'readableData': 'Datos legibles',
+    'readableDataDesc': 'Exportar tus datos en un formato fácil de leer',
+    'exportError': 'Error al exportar',
+    'passwordMin8': 'La contraseña debe tener al menos 8 caracteres',
+  },
   'zh': {
     'settings': '设置',
     'appearance': '外观',

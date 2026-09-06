@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'referral_screen.dart';
 import 'account_link_screen.dart';
 import 'leaderboard_screen.dart';
+import 'gdpr_screen.dart';
 
 
 import 'dart:io' as io;
@@ -130,6 +131,16 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
             Colors.blue,
             () => Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const AccountLinkScreen())),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.gdpr,
+            t.gdprDesc,
+            Icons.shield,
+            Colors.deepOrange,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const GdprScreen())),
           ),
           const SizedBox(height: 16),
           _buildFeatureCard(
