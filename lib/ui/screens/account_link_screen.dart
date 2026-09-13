@@ -201,6 +201,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     final t = ref.watch(translationsProvider);
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     bool loading = false;
 
     showDialog(
@@ -208,24 +209,34 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(t.linkYourAccount),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: passwordController,
-                decoration: InputDecoration(labelText: t.password, border: const OutlineInputBorder()),
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-              ),
-            ],
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return t.passwordRequired;
+                    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                    if (!emailRegex.hasMatch(v)) return t.invalidEmail;
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: InputDecoration(labelText: t.password, border: const OutlineInputBorder()),
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () {
@@ -235,10 +246,10 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
             }, child: Text(t.cancel)),
             ElevatedButton(
               onPressed: loading ? null : () async {
+                if (!formKey.currentState!.validate()) return;
                 setDialogState(() => loading = true);
                 final email = emailController.text.trim();
                 final pwd = passwordController.text;
-                // Clear immediately after capture to reduce memory residency
                 emailController.clear();
                 passwordController.clear();
                 final res = await ServerService.linkAccount(
@@ -276,6 +287,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     final emailController = TextEditingController();
     final usernameController = TextEditingController();
     final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     bool loading = false;
 
     showDialog(
@@ -284,30 +296,49 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         builder: (context, setDialogState) => AlertDialog(
           title: Text(t.createAccount),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: usernameController,
-                  decoration: InputDecoration(labelText: t.username, border: const OutlineInputBorder()),
-                  autofillHints: const [AutofillHints.newUsername],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
-                  decoration: InputDecoration(labelText: t.passwordMin, border: const OutlineInputBorder()),
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                ),
-              ],
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: emailController,
+                    decoration: InputDecoration(labelText: t.email, border: const OutlineInputBorder()),
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                      if (!emailRegex.hasMatch(v)) return t.invalidEmail;
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: usernameController,
+                    decoration: InputDecoration(labelText: t.username, border: const OutlineInputBorder()),
+                    autofillHints: const [AutofillHints.newUsername],
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      if (v.length < 3) return t.usernameMin3;
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passwordController,
+                    decoration: InputDecoration(labelText: t.passwordMin, border: const OutlineInputBorder()),
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      if (v.length < 8) return t.passwordMin8;
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -319,6 +350,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
             }, child: Text(t.cancel)),
             ElevatedButton(
               onPressed: loading ? null : () async {
+                if (!formKey.currentState!.validate()) return;
                 setDialogState(() => loading = true);
                 final email = emailController.text.trim();
                 final username = usernameController.text.trim();
@@ -492,7 +524,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(gameProvider.notifier).syncWithServer(mode: 'pull');
-              NotificationService.showFeedback(t.synced, 'Données serveur appliquées');
+              NotificationService.showFeedback(t.synced, t.serverDataApplied);
             },
             child: Text(t.replaceByServer),
           ),
@@ -500,7 +532,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(gameProvider.notifier).syncWithServer(mode: 'push');
-              NotificationService.showFeedback(t.synced, 'Vos données ont été envoyées');
+              NotificationService.showFeedback(t.synced, t.dataSentToServer);
             },
             child: Text(t.sendToServer),
           ),
@@ -508,7 +540,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(gameProvider.notifier).syncWithServer(mode: 'merge');
-              NotificationService.showFeedback(t.synced, 'Données fusionnées');
+              NotificationService.showFeedback(t.synced, t.dataMerged);
             },
             child: Text(t.mergeSum),
           ),

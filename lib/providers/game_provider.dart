@@ -1151,19 +1151,19 @@ class GameNotifier extends Notifier<GameState> {
   }
 
   /// Supprime toutes les données utilisateur (locale + serveur).
-  Future<bool> deleteAllUserData({required String password}) async {
+  /// Retourne null si succès, sinon le message d'erreur.
+  Future<String?> deleteAllUserData({required String password}) async {
     try {
       // Supprimer les données du serveur
       final res = await ServerService.deleteUserData(password: password);
       if (res == null) {
-        NotificationService.showFeedback("Erreur", "Impossible de supprimer les données du serveur");
-        return false;
+        return 'deleteDataServerError';
       }
       final errorMsg = res['error'];
       if (errorMsg != null) {
-        final msg = errorMsg is Map ? (errorMsg['message']?.toString() ?? 'Erreur') : errorMsg.toString();
-        NotificationService.showFeedback("Erreur", msg);
-        return false;
+        return errorMsg is Map
+            ? (errorMsg['message']?.toString() ?? 'error')
+            : errorMsg.toString();
       }
 
       // Supprimer les données locales
@@ -1175,12 +1175,10 @@ class GameNotifier extends Notifier<GameState> {
 
       // Réinitialiser l'état
       state = _buildDefaultState();
-      NotificationService.showFeedback("Données supprimées", "Toutes vos données ont été supprimées");
-      return true;
+      return null;
     } catch (e) {
       debugPrint('deleteAllUserData: $e');
-      NotificationService.showFeedback("Erreur", "Une erreur est survenue lors de la suppression");
-      return false;
+      return 'deleteDataUnexpectedError';
     }
   }
 
