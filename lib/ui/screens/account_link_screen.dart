@@ -198,7 +198,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   void _showLinkDialog(BuildContext context) {
-    final t = ref.watch(translationsProvider);
+    final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -283,7 +283,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   void _showCreateAccountDialog(BuildContext context) {
-    final t = ref.watch(translationsProvider);
+    final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final usernameController = TextEditingController();
     final passwordController = TextEditingController();
@@ -452,7 +452,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   Future<String?> _showPasswordDialog(String title, String message) async {
-    final t = ref.watch(translationsProvider);
+    final t = ref.read(translationsProvider);
     final controller = TextEditingController();
     String? result;
     try {
@@ -507,7 +507,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   void _checkAndShowMergeDialog() {
-    final t = ref.watch(translationsProvider);
+    final t = ref.read(translationsProvider);
     if (!_hasLocalData()) return;
     if (!mounted) return;
     showDialog(
@@ -550,7 +550,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   Future<void> _unlinkAccount() async {
-    final t = ref.watch(translationsProvider);
+    final t = ref.read(translationsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
