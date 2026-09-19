@@ -4,12 +4,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import 'settings_screen.dart';
 import 'referral_screen.dart';
+import 'account_link_screen.dart';
+import 'leaderboard_screen.dart';
+import 'gdpr_screen.dart';
 
 
 import 'dart:io' as io;
@@ -42,6 +46,7 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
   }
 
   Future<void> _importData() async {
+    final t = ref.watch(translationsProvider);
     final result = await FilePicker.platform.pickFiles(
         type: FileType.custom, allowedExtensions: ['json']);
         
@@ -58,13 +63,13 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
         ref.read(gameProvider.notifier).importData(content);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Données importées !')));
+              SnackBar(content: Text(t.dataImported)));
         }
       } catch (e) {
         debugPrint('Import error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erreur lors de l\'importation')));
+              SnackBar(content: Text(t.importError)));
         }
       }
     }
@@ -106,6 +111,50 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
             Colors.pink,
             () => Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const ReferralScreen())),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.globalLeaderboard,
+            t.globalRankingDesc,
+            Icons.leaderboard,
+            Colors.deepPurple,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const LeaderboardScreen())),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.accountSync,
+            t.linkAccountHint,
+            Icons.cloud_sync,
+            Colors.blue,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const AccountLinkScreen())),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.gdpr,
+            t.gdprDesc,
+            Icons.shield,
+            Colors.deepOrange,
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const GdprScreen())),
+          ),
+          const SizedBox(height: 16),
+          _buildFeatureCard(
+            context,
+            t.donate,
+            t.donateDesc,
+            Icons.favorite,
+            Colors.red,
+            () async {
+              final uri = Uri.parse('https://ko-fi.com/arcom');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
           ),
           const SizedBox(height: 16),
           _buildFeatureCard(
@@ -177,6 +226,7 @@ class FocusModeScreen extends ConsumerStatefulWidget {
 
 class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
     with WidgetsBindingObserver {
+  Translations get t => ref.watch(translationsProvider);
   int _selectedMinutes = 5;
   int _remainingSeconds = 0;
   Timer? _timer;
@@ -233,12 +283,12 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('RÉUSSITE !'),
+        title: Text(t.successTitle),
         content: Text(
-            'Félicitations, vous êtes resté concentré pendant $mins minutes.\n\nVous gagnez +${mins * 5} XP !'),
+            '${t.focusSuccess1}$mins${t.focusSuccess2}${mins * 5}${t.focusSuccess3}'),
         actions: [
           ElevatedButton(
-              onPressed: () => Navigator.pop(context), child: const Text('SUPER')),
+              onPressed: () => Navigator.pop(context), child: Text(t.superExcl)),
         ],
       ),
     );
@@ -275,15 +325,15 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
             if (!_isActive) ...[
               const Icon(Icons.self_improvement, size: 80, color: Colors.cyan),
               const SizedBox(height: 24),
-              const Text('MODE CONCENTRATION',
+              Text(t.focusModeTitle,
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white)),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                 child: Text(
-                  'Si vous quittez cette application avant la fin du temps, vous perdez la session.',
+                  t.focusLeaveWarning,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
@@ -293,7 +343,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                 spacing: 12,
                 children: [5, 10, 20, 30, 60]
                     .map((m) => ChoiceChip(
-                          label: Text('$m min'),
+                          label: Text('$m ${t.minShort}'),
                           selected: _selectedMinutes == m,
                           onSelected: (val) => setState(() => _selectedMinutes = m),
                         ))
@@ -301,9 +351,9 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
               ),
               const SizedBox(height: 40),
               if (_hasFailed)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 20),
-                  child: Text('ÉCHEC : Vous avez quitté l\'écran !',
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Text(t.focusFail,
                       style: TextStyle(
                           color: Colors.red, fontWeight: FontWeight.bold)),
                 ),
@@ -314,14 +364,14 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                 ),
                 onPressed: _startSession,
-                child: const Text('COMMENCER',
+                child: Text(t.start,
                     style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('RETOUR', style: TextStyle(color: Colors.white54))),
+                  child: Text(t.back, style: TextStyle(color: Colors.white54))),
             ] else ...[
-              const Text('RESTEZ CONCENTRÉ',
+              Text(t.stayFocused,
                   style: TextStyle(
                       letterSpacing: 4,
                       color: Colors.cyan,
@@ -338,7 +388,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
               const SizedBox(height: 40),
               const CircularProgressIndicator(color: Colors.cyan, strokeWidth: 2),
               const SizedBox(height: 80),
-              const Text('Ne quittez pas l\'application...',
+              Text(t.dontLeaveApp,
                   style:
                       TextStyle(color: Colors.white24, fontStyle: FontStyle.italic)),
               const SizedBox(height: 20),
@@ -347,7 +397,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                   _failSession();
                 },
                 child:
-                    const Text('ABANDONNER', style: TextStyle(color: Colors.redAccent)),
+                    Text(t.abandon, style: TextStyle(color: Colors.redAccent)),
               ),
             ],
           ],

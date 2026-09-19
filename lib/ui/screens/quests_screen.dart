@@ -48,6 +48,7 @@ class _QuestsScreenState extends ConsumerState<QuestsScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: null,
           onPressed: () {
             if (categories.isNotEmpty) {
               showAddQuestDialog(context, ref, initialCategory: categories.first);
@@ -155,7 +156,7 @@ class _QuestCard extends ConsumerWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${quest.difficulty.name.toUpperCase()} • +${quest.xpRewardValue} XP'),
+            Text('${t.translateDifficulty(quest.difficulty.name).toUpperCase()} • +${quest.xpRewardValue} ${t.xpShort}'),
             if (quest.reminderDate != null)
               Text('${t.reminder}: ${quest.reminderDate!.day}/${quest.reminderDate!.month} ${quest.reminderDate!.hour.toString().padLeft(2, '0')}:${quest.reminderDate!.minute.toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.blue, fontSize: 10)),
           ],

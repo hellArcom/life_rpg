@@ -170,7 +170,7 @@ class CharacterCustomizationScreen extends ConsumerWidget {
         filterQuality: FilterQuality.none,
         width: 48,
         height: 48,
-        errorBuilder: (_, _, _) => Icon(
+        errorBuilder: (context, error, stackTrace) => Icon(
           Icons.help_outline,
           color: Theme.of(context).colorScheme.onSurface,
         ),

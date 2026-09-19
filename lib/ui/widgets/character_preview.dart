@@ -101,7 +101,7 @@ class _StackedLayers extends StatelessWidget {
               asset,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.none,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         );

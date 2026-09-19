@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/translations.dart';
 
-class UpdateScreen extends StatelessWidget {
+class UpdateScreen extends ConsumerWidget {
   final String version;
   final String downloadUrl;
   final String releaseNotes;
@@ -14,7 +16,8 @@ class UpdateScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
     final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
@@ -40,12 +43,12 @@ class UpdateScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Mise à jour disponible',
+                t.updateAvailable,
                 style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Une nouvelle version de Life RPG est disponible (v$version).',
+                '${t.updateAvailableMsg} (v$version).',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
@@ -54,7 +57,7 @@ class UpdateScreen extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Nouveautés :',
+                    t.whatsNew,
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -85,12 +88,12 @@ class UpdateScreen extends StatelessWidget {
                   }
                 },
                 icon: const Icon(Icons.download),
-                label: const Text('Télécharger la mise à jour'),
+                label: Text(t.downloadUpdate),
               ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Plus tard'),
+                child: Text(t.later),
               ),
             ],
           ),

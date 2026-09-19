@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:intl/intl.dart';
+import '../../core/utils.dart';
 import '../../models/game_models.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
@@ -99,7 +100,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               }
             },
             onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
+              setState(() => _focusedDay = focusedDay);
             },
             eventLoader: (day) => _getEventsForDay(day, quests, bets),
             calendarStyle: CalendarStyle(
@@ -142,7 +143,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget _buildQuestTile(Quest quest, Translations t, {Key? key}) {
     final timeStr = quest.startTime != null 
         ? "${DateFormat('HH:mm').format(quest.startTime!)} - ${quest.dueDate != null ? DateFormat('HH:mm').format(quest.dueDate!) : '...'}"
-        : (quest.dueDate != null ? "Échéance: ${DateFormat('HH:mm').format(quest.dueDate!)}" : t.allDay);
+        : (quest.dueDate != null ? "${t.deadline}: ${DateFormat('HH:mm').format(quest.dueDate!)}" : t.allDay);
 
     return Card(
       key: key,
@@ -157,7 +158,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         )),
         subtitle: Text("$timeStr\n${t.translateCategory(quest.category.label)}"),
         isThreeLine: true,
-        trailing: Text("+${quest.xpRewardValue} XP", style: const TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold)),
+        trailing: Text("+${quest.xpRewardValue} ${t.xpShort}", style: const TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold)),
         onTap: () => ref.read(gameProvider.notifier).toggleQuestStatus(quest.id),
         onLongPress: () => showAddQuestDialog(context, ref, existingQuest: quest),
       ),
@@ -172,8 +173,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       child: ListTile(
         leading: const Icon(Icons.casino, color: Colors.amber),
         title: Text("${t.betLabel}: ${bet.title}"),
-        subtitle: Text("Échéance: ${DateFormat('HH:mm').format(bet.deadline)}"),
-        trailing: Text("${bet.rewardXp} XP", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+        subtitle: Text("${t.deadline}: ${DateFormat('HH:mm').format(bet.deadline)}"),
+        trailing: Text("${bet.rewardXp} ${t.xpShort}", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
       ),
     );
   }

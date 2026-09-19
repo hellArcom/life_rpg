@@ -1,7 +1,9 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/translations.dart';
+import '../../providers/game_provider.dart';
 
-class XPBar extends StatelessWidget {
+class XPBar extends ConsumerWidget {
   final int currentXp;
   final int level;
   final String label;
@@ -14,9 +16,10 @@ class XPBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final xpForCurrentLevel = pow(level - 1, 2).toInt() * 100;
-    final xpForNextLevel = pow(level, 2).toInt() * 100;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translationsProvider);
+    final xpForCurrentLevel = xpForLevel(level);
+    final xpForNextLevel = xpForLevel(level + 1);
     final xpInRange = currentXp - xpForCurrentLevel;
     final totalInRange = xpForNextLevel - xpForCurrentLevel;
     final progress = (xpInRange / totalInRange).clamp(0.0, 1.0);
@@ -29,7 +32,7 @@ class XPBar extends StatelessWidget {
           children: [
             Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 8),
-            Text('$currentXp / $xpForNextLevel XP'),
+            Text('$currentXp / $xpForNextLevel ${t.xpShort}'),
           ],
         ),
         const SizedBox(height: 8),

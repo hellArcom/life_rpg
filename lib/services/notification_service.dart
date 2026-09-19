@@ -32,6 +32,14 @@ class NotificationService {
           defaultColor: Colors.green,
           ledColor: Colors.green,
           importance: NotificationImportance.Default,
+        ),
+        NotificationChannel(
+          channelKey: 'guild_chat',
+          channelName: 'Chat Guilde',
+          channelDescription: 'Notifications pour les messages de guilde',
+          defaultColor: Colors.blue,
+          ledColor: Colors.blue,
+          importance: NotificationImportance.High,
         )
       ],
       debug: true,
@@ -72,9 +80,29 @@ class NotificationService {
     );
   }
 
+  /// Affiche une notification pour un message de guilde reçu en background
+  static Future<void> showGuildMessageNotification({
+    required String guildName,
+    required String senderName,
+    required String message,
+    required String guildId,
+  }) async {
+    if (kIsWeb) return;
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch % 2147483647,
+        channelKey: 'guild_chat',
+        title: '$guildName • $senderName',
+        body: message,
+        notificationLayout: NotificationLayout.Default,
+        payload: {'guild_id': guildId, 'type': 'guild_message'},
+      ),
+    );
+  }
+
   static Future<void> cancelReminder(String id) async {
     if (kIsWeb) return;
-    await AwesomeNotifications().cancel(id.hashCode);
+    await AwesomeNotifications().cancel(id.hashCode & 0x7FFFFFFF);
   }
 
   static Future<void> scheduleDailyProactiveReminder() async {

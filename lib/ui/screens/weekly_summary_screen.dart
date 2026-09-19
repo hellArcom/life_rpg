@@ -17,7 +17,7 @@ class WeeklySummaryScreen extends ConsumerWidget {
     final totalXp = notifier.totalWeeklyXp;
     final completedQuests = gameState.quests.where((q) => q.status == QuestStatus.completed).length;
 
-    final days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    final days = [t.dayMon, t.dayTue, t.dayWed, t.dayThu, t.dayFri, t.daySat, t.daySun];
 
     return Scaffold(
       appBar: AppBar(title: Text(t.weeklySummary)),
@@ -32,15 +32,15 @@ class WeeklySummaryScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     Text('$totalXp', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.cyan)),
-                    Text('XP cette semaine', style: const TextStyle(color: Colors.grey)),
+                    Text(t.xpThisWeek, style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 12),
-                    Text('$completedQuests quêtes complétées', style: TextStyle(color: Colors.amber)),
+                    Text('$completedQuests ${t.questsCompletedLabel}', style: TextStyle(color: Colors.amber)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            const Text('XP par jour', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(t.xpPerDay, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
             Expanded(
               child: BarChart(
