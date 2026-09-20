@@ -27,7 +27,7 @@ Builds:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - 'for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done'
+      - for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
@@ -51,7 +51,7 @@ Builds:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - 'for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done'
+      - for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
@@ -75,7 +75,7 @@ Builds:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - 'for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done'
+      - for jar in $(find $flutter$/bin/cache/artifacts/engine -name flutter.jar -o -name "flutter_embedding_*.jar"); do zip -d "$jar" "io/flutter/embedding/engine/deferredcomponents/*" "io/flutter/embedding/android/FlutterPlayStoreSplitApplication*" 2>/dev/null; done
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
