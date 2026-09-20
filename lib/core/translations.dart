@@ -403,6 +403,16 @@ class Translations {
   String get readableDataDesc => get('readableDataDesc');
   String get exportError => get('exportError');
   String get passwordMin8 => get('passwordMin8');
+  String get deleteDataServerError => get('deleteDataServerError');
+  String get deleteDataUnexpectedError => get('deleteDataUnexpectedError');
+  String get serverDataApplied => get('serverDataApplied');
+  String get dataSentToServer => get('dataSentToServer');
+  String get dataMerged => get('dataMerged');
+  String get legalDocumentNotFound => get('legalDocumentNotFound');
+  String get myData => get('myData');
+  String get invalidEmail => get('invalidEmail');
+  String get usernameMin3 => get('usernameMin3');
+  String get loading => get('loading');
 
   String translateDifficulty(String name) => get('difficulty_$name');
   String translateFrequency(String name) => get('frequency_$name');
@@ -847,6 +857,16 @@ final Map<String, Map<String, String>> _translationsData = {
     'readableDataDesc': 'Exporter vos données dans un format facile à lire',
     'exportError': 'Erreur lors de l\'export',
     'passwordMin8': 'Le mot de passe doit faire au moins 8 caractères',
+    'deleteDataServerError': 'Impossible de supprimer les données du serveur',
+    'deleteDataUnexpectedError': 'Une erreur est survenue lors de la suppression',
+    'serverDataApplied': 'Données serveur appliquées',
+    'dataSentToServer': 'Vos données ont été envoyées',
+    'dataMerged': 'Données fusionnées',
+    'legalDocumentNotFound': 'Document légal introuvable',
+    'myData': 'Mes données',
+    'invalidEmail': 'Adresse email invalide',
+    'usernameMin3': 'Le pseudo doit faire au moins 3 caractères',
+    'loading': 'Chargement...',
   },
   'en': {
     'streak': 'Streak',
@@ -1264,6 +1284,16 @@ final Map<String, Map<String, String>> _translationsData = {
     'readableDataDesc': 'Export your data in an easy-to-read format',
     'exportError': 'Export Error',
     'passwordMin8': 'Password must be at least 8 characters',
+    'deleteDataServerError': 'Could not delete server data',
+    'deleteDataUnexpectedError': 'An error occurred during deletion',
+    'serverDataApplied': 'Server data applied',
+    'dataSentToServer': 'Your data was sent to the server',
+    'dataMerged': 'Data merged',
+    'legalDocumentNotFound': 'Legal document not found',
+    'myData': 'My Data',
+    'invalidEmail': 'Invalid email address',
+    'usernameMin3': 'Username must be at least 3 characters',
+    'loading': 'Loading...',
   },
   'es': {
     'settings': 'CONFIGURACIÓN',

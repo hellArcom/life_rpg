@@ -1,7 +1,7 @@
 name: life_rpg_dev
 description: "Life RPG Dev , https://liferpg.dpdns.org/"
 publish_to: 'none'
-version: 0.4.0+1
+version: 0.5.0+1
 
 environment:
   sdk: ">=3.2.0 <4.0.0"

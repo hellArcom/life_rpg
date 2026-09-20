@@ -24,9 +24,9 @@ class ServerService {
   /// En release : serveur de production (surchargeable via --dart-define=SERVER_URL=...).
   static const String _prodUrl = String.fromEnvironment(
     'SERVER_URL',
-    defaultValue: 'https://arcom.cel20.online',
+    defaultValue: 'https://liferpg.dpdns.org/',
   );
-  static const String _devUrl = 'http://127.0.0.1:5000';
+  static const String _devUrl = 'https://liferpg.dpdns.org/';
   static String get baseUrl => kDebugMode ? _devUrl : _prodUrl;
   static const Duration _timeout = Duration(seconds: 8);
 

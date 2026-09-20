@@ -1,4 +1,6 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -109,7 +111,7 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
 
   Widget _buildFeatureCard(
     BuildContext context,
-    String subtitle,
+    String title,
     IconData icon,
     Color color,
     VoidCallback onTap,
@@ -121,7 +123,7 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
           backgroundColor: color.withValues(alpha: 0.2),
           child: Icon(icon, color: color),
         ),
-        title: Text(subtitle, style: const TextStyle(fontSize: 14)),
+        title: Text(title, style: const TextStyle(fontSize: 14)),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
@@ -135,75 +137,98 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.changePassword),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: currentController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.currentPassword),
-                validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+          return AlertDialog(
+            title: Text(t.changePassword),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: currentController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.currentPassword),
+                    validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: newController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.newPassword),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      if (v.length < 8) return t.passwordMin8;
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: confirmController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.confirmNewPassword),
+                    validator: (v) {
+                      if (v != newController.text) return t.passwordMismatch;
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: newController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.newPassword),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return t.passwordRequired;
-                  if (v.length < 8) return t.passwordMin8;
-                  return null;
-                },
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: Text(t.cancel),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: confirmController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.confirmNewPassword),
-                validator: (v) {
-                  if (v != newController.text) return t.passwordMismatch;
-                  return null;
-                },
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setState(() => isLoading = true);
+                        final res = await ServerService.updatePassword(
+                          currentPassword: currentController.text,
+                          newPassword: newController.text,
+                        );
+                        if (!mounted) return;
+                        setState(() => isLoading = false);
+                        if (res != null && res['message'] != null) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.passwordUpdated)),
+                          );
+                        } else {
+                          final err = res?['error'];
+                          final msg = err is Map
+                              ? (err['message']?.toString() ?? t.error)
+                              : (err?.toString() ?? t.error);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        }
+                      },
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(t.save),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context);
-              final res = await ServerService.updatePassword(
-                currentPassword: currentController.text,
-                newPassword: newController.text,
-              );
-              if (mounted) {
-                if (res != null && res['message'] != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(t.passwordUpdated)),
-                  );
-                } else {
-                  final err = res?['error'];
-                  final msg = err is Map ? (err['message']?.toString() ?? t.error) : (err?.toString() ?? t.error);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
-                  );
-                }
-              }
-            },
-            child: Text(t.save),
-          ),
-        ],
+          );
+        },
       ),
-    );
+    ).whenComplete(() {
+      currentController.dispose();
+      newController.dispose();
+      confirmController.dispose();
+    });
   }
 
   void _showChangeEmailDialog(BuildContext context, Translations t) {
@@ -213,65 +238,88 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.changeEmail),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.password),
-                validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+          return AlertDialog(
+            title: Text(t.changeEmail),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.password),
+                    validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(labelText: t.newEmail),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                      if (!emailRegex.hasMatch(v)) return t.invalidEmail;
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: t.newEmail),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return t.passwordRequired;
-                  if (!v.contains('@')) return t.error;
-                  return null;
-                },
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: Text(t.cancel),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setState(() => isLoading = true);
+                        final res = await ServerService.updateEmail(
+                          password: passwordController.text,
+                          newEmail: emailController.text,
+                        );
+                        if (!mounted) return;
+                        setState(() => isLoading = false);
+                        if (res != null && res['message'] != null) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.emailUpdated)),
+                          );
+                        } else {
+                          final err = res?['error'];
+                          final msg = err is Map
+                              ? (err['message']?.toString() ?? t.error)
+                              : (err?.toString() ?? t.error);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        }
+                      },
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(t.save),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context);
-              final res = await ServerService.updateEmail(
-                password: passwordController.text,
-                newEmail: emailController.text,
-              );
-              if (mounted) {
-                if (res != null && res['message'] != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(t.emailUpdated)),
-                  );
-                } else {
-                  final err = res?['error'];
-                  final msg = err is Map ? (err['message']?.toString() ?? t.error) : (err?.toString() ?? t.error);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
-                  );
-                }
-              }
-            },
-            child: Text(t.save),
-          ),
-        ],
+          );
+        },
       ),
-    );
+    ).whenComplete(() {
+      passwordController.dispose();
+      emailController.dispose();
+    });
   }
 
   void _showChangeUsernameDialog(BuildContext context, Translations t) {
@@ -281,110 +329,186 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.changeUsername),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.password),
-                validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+          return AlertDialog(
+            title: Text(t.changeUsername),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.password),
+                    validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: usernameController,
+                    decoration: InputDecoration(labelText: t.newUsername),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return t.passwordRequired;
+                      if (v.length < 3) return t.usernameMin3;
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: usernameController,
-                decoration: InputDecoration(labelText: t.newUsername),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return t.passwordRequired;
-                  if (v.length < 3) return t.error;
-                  return null;
-                },
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: Text(t.cancel),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setState(() => isLoading = true);
+                        final res = await ServerService.updateUsername(
+                          password: passwordController.text,
+                          newUsername: usernameController.text,
+                        );
+                        if (!mounted) return;
+                        setState(() => isLoading = false);
+                        if (res != null && res['message'] != null) {
+                          final game = ref.read(gameProvider.notifier);
+                          game.updatePseudo(usernameController.text);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.usernameUpdated)),
+                          );
+                        } else {
+                          final err = res?['error'];
+                          final msg = err is Map
+                              ? (err['message']?.toString() ?? t.error)
+                              : (err?.toString() ?? t.error);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        }
+                      },
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(t.save),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context);
-              final res = await ServerService.updateUsername(
-                password: passwordController.text,
-                newUsername: usernameController.text,
-              );
-              if (mounted) {
-                if (res != null && res['message'] != null) {
-                  final game = ref.read(gameProvider.notifier);
-                  game.updatePseudo(usernameController.text);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(t.usernameUpdated)),
-                  );
-                } else {
-                  final err = res?['error'];
-                  final msg = err is Map ? (err['message']?.toString() ?? t.error) : (err?.toString() ?? t.error);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
-                  );
-                }
-              }
-            },
-            child: Text(t.save),
-          ),
-        ],
+          );
+        },
       ),
-    );
+    ).whenComplete(() {
+      passwordController.dispose();
+      usernameController.dispose();
+    });
   }
 
   Future<void> _exportServerData(BuildContext context, Translations t) async {
-    final res = await ServerService.exportUserData();
-    if (!mounted) return;
-    if (res != null && !res.containsKey('error')) {
-      final jsonData = const JsonEncoder.withIndent('  ').convert(res);
-      await _shareJsonData(context, jsonData, 'liferpg_server_data.json');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.dataExported)),
-        );
+    final loadingDialog = showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Text(t.loading),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final res = await ServerService.exportUserData();
+      if (!mounted) return;
+      Navigator.pop(context, loadingDialog);
+      if (res != null && !res.containsKey('error')) {
+        final jsonData = const JsonEncoder.withIndent('  ').convert(res);
+        await _shareJsonData(context, t, jsonData, 'liferpg_server_data.json');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.dataExported)),
+          );
+        }
+      } else {
+        if (mounted) {
+          final err = res?['error'];
+          final msg = err is Map
+              ? (err['message']?.toString() ?? t.exportError)
+              : (err?.toString() ?? t.exportError);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg)),
+          );
+        }
       }
-    } else {
-      if (mounted) {
-                  final err = res?['error'];
-                  final msg = err is Map ? (err['message']?.toString() ?? t.error) : (err?.toString() ?? t.error);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
-                  );
-      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context, loadingDialog);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.exportError)),
+      );
     }
   }
 
-  void _exportReadableData(BuildContext context, Translations t) {
-    final game = ref.read(gameProvider.notifier);
-    final data = game.exportReadableData();
-    _shareJsonData(context, data, 'liferpg_my_data.json');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.dataExported)),
+  Future<void> _exportReadableData(BuildContext context, Translations t) async {
+    final loadingDialog = showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Text(t.loading),
+          ],
+        ),
+      ),
     );
+
+    try {
+      final game = ref.read(gameProvider.notifier);
+      final data = game.exportReadableData();
+      if (!mounted) return;
+      Navigator.pop(context, loadingDialog);
+      _shareJsonData(context, t, data, 'liferpg_my_data.json');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.dataExported)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context, loadingDialog);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.exportError)),
+      );
+    }
   }
 
-  Future<void> _shareJsonData(BuildContext context, String jsonData, String filename) async {
+  Future<void> _shareJsonData(BuildContext context, Translations t, String jsonData, String filename) async {
     if (kIsWeb) {
-      await Share.share(jsonData, subject: 'Life RPG - Mes données');
+      await Share.share(jsonData, subject: 'Life RPG - ${t.myData}');
     } else {
       try {
         final directory = await getApplicationDocumentsDirectory();
         final path = '${directory.path}/$filename';
         final file = io.File(path);
         await file.writeAsString(jsonData);
-        await Share.shareXFiles([XFile(path)], text: 'Life RPG - Mes données');
+        await Share.shareXFiles([XFile(path)], text: 'Life RPG - ${t.myData}');
       } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(t.exportError)),
+          );
+        }
         debugPrint('Export error: $e');
       }
     }
@@ -399,14 +523,6 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
     try {
       content = await rootBundle.loadString('assets/CGU.md');
     } catch (_) {}
-    if (content == null) {
-      try {
-        final file = io.File('CGU.md');
-        if (await file.exists()) {
-          content = await file.readAsString();
-        }
-      } catch (_) {}
-    }
     if (content != null && mounted) {
       Navigator.push(
         context,
@@ -419,7 +535,7 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document légal introuvable')),
+        SnackBar(content: Text(t.legalDocumentNotFound)),
       );
     }
   }
@@ -430,71 +546,99 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.deleteDataConfirm),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.red),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        t.deleteDataWarning,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
-                      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+          return AlertDialog(
+            title: Text(t.deleteDataConfirm),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            t.deleteDataWarning,
+                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(t.deleteDataConfirmMsg),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(labelText: t.password),
+                    validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(t.deleteDataConfirmMsg),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: t.password),
-                validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: Text(t.cancel),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setState(() => isLoading = true);
+                        final game = ref.read(gameProvider.notifier);
+                        final errorMsg = await game.deleteAllUserData(
+                          password: passwordController.text,
+                        );
+                        if (!mounted) return;
+                        setState(() => isLoading = false);
+                        if (errorMsg == null) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.dataDeleted)),
+                          );
+                          Navigator.pop(context);
+                        } else {
+                          final msg = errorMsg == 'deleteDataServerError' || errorMsg == 'deleteDataUnexpectedError'
+                              ? t.get(errorMsg)
+                              : errorMsg;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        }
+                      },
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(t.delete, style: const TextStyle(color: Colors.white)),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.cancel),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context);
-              final game = ref.read(gameProvider.notifier);
-              final success = await game.deleteAllUserData(
-                password: passwordController.text,
-              );
-              if (mounted && success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(t.dataDeleted)),
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: Text(t.delete, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
+          );
+        },
       ),
-    );
+    ).whenComplete(() {
+      passwordController.dispose();
+    });
   }
 }
 
@@ -522,6 +666,12 @@ class _LegalDocumentScreen extends StatelessWidget {
   String _renderMarkdownLine(String line) {
     line = line.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m.group(1)!);
     line = line.replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => m.group(1)!);
+    // Render links: [text](url) -> clickable
+    line = line.replaceAllMapped(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), (m) {
+      final text = m.group(1)!;
+      final url = m.group(2)!;
+      return 'LINK_MARKER::$text::LINK_URL::$url::LINK_END';
+    });
     return line;
   }
 
@@ -602,7 +752,7 @@ class _LegalDocumentScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-              Expanded(child: Text(_renderMarkdownLine(trimmed.substring(2)))),
+              Expanded(child: _buildRichText(_renderMarkdownLine(trimmed.substring(2)), theme)),
             ],
           ),
         ));
@@ -613,11 +763,38 @@ class _LegalDocumentScreen extends StatelessWidget {
       } else {
         widgets.add(Padding(
           padding: const EdgeInsets.only(top: 2, bottom: 2),
-          child: Text(_renderMarkdownLine(trimmed)),
+          child: _buildRichText(_renderMarkdownLine(trimmed), theme),
         ));
       }
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+  }
+
+  Widget _buildRichText(String text, ThemeData theme) {
+    final segments = text.split(RegExp(r'(LINK_MARKER::[^:]+::LINK_URL::[^:]+::LINK_END)'));
+    final children = <InlineSpan>[];
+    for (final segment in segments) {
+      final linkMatch = RegExp(r'LINK_MARKER::([^:]+)::LINK_URL::([^:]+)::LINK_END').firstMatch(segment);
+      if (linkMatch != null) {
+        final linkText = linkMatch.group(1)!;
+        final linkUrl = linkMatch.group(2)!;
+        children.add(TextSpan(
+          text: linkText,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            decoration: TextDecoration.underline,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => launchUrl(Uri.parse(linkUrl)),
+        ));
+      } else if (segment.isNotEmpty) {
+        children.add(TextSpan(
+          text: segment,
+          style: theme.textTheme.bodyMedium,
+        ));
+      }
+    }
+    return RichText(text: TextSpan(children: children));
   }
 }

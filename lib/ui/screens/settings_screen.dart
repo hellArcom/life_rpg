@@ -62,6 +62,14 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const Divider(),
+          // Accessibility: Color blind mode
+          ListTile(
+            title: Text(t.colorBlindMode),
+            subtitle: Text(settings.colorBlindModeLabel),
+            leading: const Icon(Icons.color_lens),
+            onTap: () => _showColorBlindModeDialog(context, settingsNotifier, settings.colorBlindMode, t),
+          ),
+          const Divider(),
           _buildSectionHeader(t.audio),
           ListTile(
             title: Text(t.soundVolume),
@@ -231,6 +239,51 @@ class SettingsScreen extends ConsumerWidget {
               }).toList(),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showColorBlindModeDialog(BuildContext context, SettingsNotifier notifier, ColorBlindMode currentMode, Translations t) {
+    final modes = [
+      ColorBlindMode.none,
+      ColorBlindMode.protanopia,
+      ColorBlindMode.deuteranopia,
+      ColorBlindMode.tritanopia,
+    ];
+
+    String modeToString(ColorBlindMode mode, Translations t) {
+      switch (mode) {
+        case ColorBlindMode.none:
+          return t.noColorBlind;
+        case ColorBlindMode.protanopia:
+          return t.protanopia;
+        case ColorBlindMode.deuteranopia:
+          return t.deuteranopia;
+        case ColorBlindMode.tritanopia:
+          return t.tritanopia;
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.chooseColorBlindMode),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: modes.map((mode) {
+            return RadioListTile<ColorBlindMode>(
+              title: Text(modeToString(mode, t)),
+              value: mode,
+              groupValue: currentMode,
+              onChanged: (val) {
+                if (val != null) {
+                  notifier.setColorBlindMode(val);
+                  Navigator.pop(context);
+                }
+              },
+            );
+          }).toList(),
         ),
       ),
     );
