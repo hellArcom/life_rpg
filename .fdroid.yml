@@ -16,8 +16,7 @@ Builds:
   - versionName: 0.5.0
     versionCode: 11
     commit: dc2f7eb23c9f882c5c667e1821e5c4f034168a78
-    sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom
+    sudo: mkdir -p /upstream/path/github.com/hellArcom
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -53,8 +52,7 @@ Builds:
   - versionName: 0.5.0
     versionCode: 12
     commit: dc2f7eb23c9f882c5c667e1821e5c4f034168a78
-    sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom
+    sudo: mkdir -p /upstream/path/github.com/hellArcom
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -90,8 +88,7 @@ Builds:
   - versionName: 0.5.0
     versionCode: 13
     commit: dc2f7eb23c9f882c5c667e1821e5c4f034168a78
-    sudo:
-      - mkdir -p /upstream/path/github.com/hellArcom
+    sudo: mkdir -p /upstream/path/github.com/hellArcom
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
