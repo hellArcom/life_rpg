@@ -109,5 +109,3 @@ VercodeOperation:
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 CurrentVersion: 0.5.0
 CurrentVersionCode: 13
-
-
