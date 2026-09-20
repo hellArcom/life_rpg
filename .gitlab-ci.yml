@@ -1,0 +1,99 @@
+stages:
+  - build
+  - package
+
+variables:
+  FLUTTER_VERSION: "3.44.9"
+  ANDROID_COMPILE_SDK: "36"
+  ANDROID_NDK_VERSION: "28.2.13676358"
+  JAVA_VERSION: "17"
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq wget unzip openjdk-17-jdk-headless git
+  - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+  - export PATH=$JAVA_HOME/bin:$PATH
+  - export ANDROID_HOME=/opt/android-sdk
+  - export ANDROID_SDK_ROOT=$ANDROID_HOME
+  - export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+
+build_and_strip:
+  stage: build
+  image: ubuntu:24.04
+  timeout: 90m
+  script:
+    # Install Android SDK command line tools
+    - mkdir -p $ANDROID_HOME/cmdline-tools
+    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+    - unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+    - mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+    - yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+    - $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-$ANDROID_COMPILE_SDK" "build-tools;35.0.0" "ndk;$ANDROID_NDK_VERSION"
+    
+    # Install Flutter
+    - git clone --depth 1 --branch $FLUTTER_VERSION https://github.com/flutter/flutter.git /opt/flutter
+    - export PATH="/opt/flutter/bin:$PATH"
+    - flutter config --no-analytics
+    - flutter doctor -v
+    
+    # Get dependencies
+    - export PUB_CACHE=$CI_PROJECT_DIR/.pub-cache
+    - flutter pub get --enforce-lockfile
+    
+    # Remove non-Android platforms (as F-Droid does)
+    - rm -rf ios linux windows
+    
+    # Build APKs for each ABI
+    - flutter build apk --release --split-per-abi --target-platform=android-arm
+    - flutter build apk --release --split-per-abi --target-platform=android-arm64
+    - flutter build apk --release --split-per-abi --target-platform=android-x64
+    
+    # Verify APKs exist
+    - ls -la build/app/outputs/flutter-apk/
+    - test -f build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+    - test -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    - test -f build/app/outputs/flutter-apk/app-x86_64-release.apk
+    
+    # Download baksmali/smali JARs for stripping Play Core classes (from Maven Central)
+    - mkdir -p android/app/fdroid-tools
+    - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
+    - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
+    - test -f android/app/fdroid-tools/baksmali.jar
+    - test -f android/app/fdroid-tools/smali.jar
+    
+    # Strip Play Core classes from APKs (F-Droid requirement)
+    - cd android
+    - chmod +x gradlew
+    - ./gradlew :app:stripPlayCoreClasses --no-daemon
+    - cd ..
+    
+    # Verify stripped APKs
+    - ls -la build/app/outputs/flutter-apk/*-release.apk
+  artifacts:
+    paths:
+      - build/app/outputs/flutter-apk/*.apk
+    expire_in: 1 week
+
+package_fdroid:
+  stage: package
+  image: ubuntu:24.04
+  needs: [build_and_strip]
+  script:
+    - mkdir -p fdroid-artifacts
+    - cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk fdroid-artifacts/life_rpg-arm.apk
+    - cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk fdroid-artifacts/life_rpg-arm64.apk
+    - cp build/app/outputs/flutter-apk/app-x86_64-release.apk fdroid-artifacts/life_rpg-x86_64.apk
+    - ls -la fdroid-artifacts/
+    - echo "APKs ready for F-Droid submission"
+  artifacts:
+    paths:
+      - fdroid-artifacts/*.apk
+    expire_in: 1 month
+
+# Only run on tags (like F-Droid builds from tags)
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "master"

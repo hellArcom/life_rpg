@@ -122,16 +122,20 @@ tasks.register("stripPlayCoreClasses") {
             return@doLast
         }
         
-        // Use pre-bundled baksmali/smali JARs (in android/app/fdroid-tools/)
-        // Download standalone JARs from: https://bitbucket.org/JesusFreke/smali/downloads/ (archived)
-        // Place baksmali.jar and smali.jar in android/app/fdroid-tools/
+// Use pre-bundled baksmali/smali JARs (in android/app/fdroid-tools/)
+// Download standalone JARs from Maven Central:
+// https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
+// https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
+// Place baksmali.jar and smali.jar in android/app/fdroid-tools/
         val toolsDir = file("${project.rootDir}/../android/app/fdroid-tools")
         val baksmaliJar = file("${toolsDir}/baksmali.jar")
         val smaliJar = file("${toolsDir}/smali.jar")
         
         if (!baksmaliJar.exists() || !smaliJar.exists()) {
             logger.warn("baksmali/smali JARs not found in ${toolsDir}. Skipping Play Core stripping.")
-            logger.warn("Download standalone JARs from https://bitbucket.org/JesusFreke/smali/downloads/ (archived)")
+            logger.warn("Download standalone JARs from Maven Central:")
+            logger.warn("  https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar")
+            logger.warn("  https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar")
             return@doLast
         }
         

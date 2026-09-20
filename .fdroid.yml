@@ -15,7 +15,7 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: 0.5.0
     versionCode: 11
-    commit: 8df4030d18ab4a320c2a9352a0347f0f4f6348b1
+    commit: dc2f7eb
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -31,8 +31,8 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
@@ -42,7 +42,7 @@ Builds:
 
   - versionName: 0.5.0
     versionCode: 12
-    commit: 8df4030d18ab4a320c2a9352a0347f0f4f6348b1
+    commit: dc2f7eb
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -58,8 +58,8 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
@@ -69,7 +69,7 @@ Builds:
 
   - versionName: 0.5.0
     versionCode: 13
-    commit: 8df4030d18ab4a320c2a9352a0347f0f4f6348b1
+    commit: dc2f7eb
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -85,8 +85,8 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
+      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
