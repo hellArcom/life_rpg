@@ -15,9 +15,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Signing config lives in key.properties (never committed). Signing is enabled
-// only when the keystore file actually exists: on the F-Droid build server
-// key.properties is absent so the release build stays unsigned.
+// Exclude non-free Google Play Core library injected by Flutter Android embedding
+configurations.all {
+    exclude(group = "com.google.android.play")
+}
+
+// Signing config lives in key.properties (never committed).
 val signingProps = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) {
@@ -83,10 +86,6 @@ android {
         }
     }
 
-    // ABI split version code scheme: each ABI gets a distinct version code
-    // (base*10 + abi). Order: armeabi-v7a=1, arm64-v8a=2, x86_64=3.
-    // F-Droid mirrors this with "VercodeOperation: 10 * %c + 1/2/3" in the
-    // app metadata so that the client always picks the highest installable ABI.
     applicationVariants.configureEach {
         val variant = this
         variant.outputs.forEach { output ->
