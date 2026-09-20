@@ -31,10 +31,10 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
-        -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
-        -O android/app/fdroid-tools/smali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
+        -o android/app/fdroid-tools/baksmali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
+        -o android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
@@ -60,10 +60,10 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
-        -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
-        -O android/app/fdroid-tools/smali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
+        -o android/app/fdroid-tools/baksmali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
+        -o android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
@@ -89,10 +89,10 @@ Builds:
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - mkdir -p android/app/fdroid-tools
-      - wget -q https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
-        -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
-        -O android/app/fdroid-tools/smali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
+        -o android/app/fdroid-tools/baksmali.jar
+      - curl -sL https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
+        -o android/app/fdroid-tools/smali.jar
     scandelete:
       - .pub-cache
     build:
