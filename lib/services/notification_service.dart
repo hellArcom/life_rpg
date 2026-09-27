@@ -16,7 +16,6 @@ class NotificationService {
     );
 
     final DarwinInitializationSettings darwinInitializationSettings = DarwinInitializationSettings(
-      onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) {},
       requestSoundPermission: true,
       requestBadgePermission: true,
       requestAlertPermission: true,
@@ -28,7 +27,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
       onDidReceiveBackgroundNotificationResponse: _onNotificationResponse,
     );
@@ -45,6 +44,7 @@ class NotificationService {
     }
   }
 
+  @pragma('vm:entry-point')
   static void _onNotificationResponse(NotificationResponse response) {
     // Handle notification tap if needed
   }
@@ -172,13 +172,13 @@ class NotificationService {
     final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
     await _plugin.zonedSchedule(
-      notificationId,
-      'Rappel de quête',
-      title,
-      tzScheduledDate,
-      _getNotificationDetails('quests'),
+      id: notificationId,
+      title: 'Rappel de quête',
+      body: title,
+      scheduledDate: tzScheduledDate,
+      notificationDetails: _getNotificationDetails('quests'),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'type=quest_reminder',
     );
   }
 
@@ -187,10 +187,10 @@ class NotificationService {
     final int notificationId = DateTime.now().millisecondsSinceEpoch % 2147483647;
 
     await _plugin.show(
-      notificationId,
-      title,
-      body,
-      _getNotificationDetails('feedback'),
+      id: notificationId,
+      title: title,
+      body: body,
+      notificationDetails: _getNotificationDetails('feedback'),
     );
   }
 
@@ -204,10 +204,10 @@ class NotificationService {
     final int notificationId = DateTime.now().millisecondsSinceEpoch % 2147483647;
 
     await _plugin.show(
-      notificationId,
-      '$guildName • $senderName',
-      message,
-      _getNotificationDetails('guild_chat'),
+      id: notificationId,
+      title: '$guildName • $senderName',
+      body: message,
+      notificationDetails: _getNotificationDetails('guild_chat'),
       payload: 'guild_id=$guildId&type=guild_message',
     );
   }
@@ -215,7 +215,7 @@ class NotificationService {
   static Future<void> cancelReminder(String id) async {
     if (kIsWeb) return;
     final int notificationId = id.hashCode & 0x7FFFFFFF;
-    await _plugin.cancel(notificationId);
+    await _plugin.cancel(id: notificationId);
   }
 
   static Future<void> scheduleDailyProactiveReminder() async {
@@ -227,13 +227,13 @@ class NotificationService {
     final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
     await _plugin.zonedSchedule(
-      9999,
-      'Rappel du soir',
-      'Tu n\'as pas fini toutes tes quêtes aujourd\'hui ? Il est encore temps !',
-      tzScheduledDate,
-      _getNotificationDetails('quests'),
+      id: 9999,
+      title: 'Rappel du soir',
+      body: 'Tu n\'as pas fini toutes tes quêtes aujourd\'hui ? Il est encore temps !',
+      scheduledDate: tzScheduledDate,
+      notificationDetails: _getNotificationDetails('quests'),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'type=daily_proactive',
     );
   }
 
@@ -246,13 +246,13 @@ class NotificationService {
     final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
     await _plugin.zonedSchedule(
-      8888,
-      'Bilan du soir 📝',
-      'Ta journée s\'est bien passée ? Note-la et gagne 10 pièces !',
-      tzScheduledDate,
-      _getNotificationDetails('feedback'),
+      id: 8888,
+      title: 'Bilan du soir 📝',
+      body: 'Ta journée s\'est bien passée ? Note-la et gagne 10 pièces !',
+      scheduledDate: tzScheduledDate,
+      notificationDetails: _getNotificationDetails('feedback'),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'type=evening_entry',
     );
   }
 }
