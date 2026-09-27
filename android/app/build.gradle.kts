@@ -1,6 +1,7 @@
 import com.android.build.gradle.api.ApkVariantOutput
 import java.util.Properties
 
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -9,9 +10,11 @@ plugins {
 
 configurations.all {
     exclude(group = "com.google.android.play")
-    exclude(group = "com.google.android.play", module = "core")
-    exclude(group = "com.google.android.play", module = "core-common")
-    exclude(group = "com.google.android.play", module = "feature-delivery")
+}
+
+configurations.configureEach {
+    exclude(group = "com.google.android.play")
+    exclude(group = "com.google.play.core", module = "core")
 }
 
 val signingProps = Properties().apply {
