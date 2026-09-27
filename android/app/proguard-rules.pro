@@ -89,6 +89,8 @@
 -dontwarn com.google.android.play.core.tasks.**
 -dontwarn com.google.android.play.core.splitcompat.**
 -dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.**
+-removeallclassesannotations com.google.android.play.core.**
 -assumenosideeffects class com.google.android.play.core.tasks.** { *; }
 -assumenosideeffects class com.google.android.play.core.splitcompat.** { *; }
 -assumenosideeffects class com.google.android.play.core.splitinstall.** { *; }

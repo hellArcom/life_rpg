@@ -7,12 +7,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Exclusion propre des dépendances propriétaires Google Play Core pour F-Droid
 configurations.all {
     exclude(group = "com.google.android.play")
 }
 
-// Chargement facultatif de key.properties (s'il existe localement)
 val signingProps = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) {
@@ -78,7 +76,6 @@ android {
         }
     }
 
-    // Gestion du split ABI pour F-Droid (surcharge du versionCode)
     applicationVariants.configureEach {
         val variant = this
         variant.outputs.forEach { output ->
@@ -93,8 +90,4 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}
-
-flutter {
-    source = "../.."
 }
