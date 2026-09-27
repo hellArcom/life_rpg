@@ -12,11 +12,6 @@ configurations.all {
     exclude(group = "com.google.android.play")
 }
 
-configurations.configureEach {
-    exclude(group = "com.google.android.play")
-    exclude(group = "com.google.play.core", module = "core")
-}
-
 val signingProps = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) {
@@ -68,6 +63,12 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".test"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         release {
             isMinifyEnabled = true
