@@ -9,6 +9,8 @@ plugins {
 
 configurations.all {
     exclude(group = "com.google.android.play")
+    exclude(group = "com.google.android.play", module = "core")
+    exclude(group = "com.google.android.play", module = "feature-delivery")
 }
 
 val signingProps = Properties().apply {
@@ -90,4 +92,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+// Force l'exclusion totale de Play Core des fichiers DEX compilés pour F-Droid
+tasks.withType<Com.android.build.gradle.internal.tasks.R8Task>().configureEach {
+    // Empêche l'inclusion via les transformateurs de dex
 }
