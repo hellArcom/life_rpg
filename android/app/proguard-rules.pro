@@ -70,9 +70,6 @@
 # Socket.IO
 -keep class io.socket.** { *; }
 
-# awesome_notifications
--keep class com.awesome.** { *; }
-
 # WorkManager
 -keep class androidx.work.** { *; }
 
