@@ -55,7 +55,6 @@ Life_RPG_serveur/
 SERVER_API.md
 
 # Build Android (release) + config Firebase (clés client)
-android/app/src/release/
 **/google-services.json
 
 # Fichier vide accidentel

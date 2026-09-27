@@ -23,22 +23,17 @@ Builds:
       - ios
       - linux
       - windows
+      - macos
+      - web
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
-    scandelete:
-      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
-      - cd android && ./gradlew :app:stripPlayCoreClasses
 
   - versionName: 0.5.0
     versionCode: 12
@@ -50,22 +45,17 @@ Builds:
       - ios
       - linux
       - windows
+      - macos
+      - web
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
-    scandelete:
-      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
-      - cd android && ./gradlew :app:stripPlayCoreClasses
 
   - versionName: 0.5.0
     versionCode: 13
@@ -77,30 +67,24 @@ Builds:
       - ios
       - linux
       - windows
+      - macos
+      - web
     prebuild:
       - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
-      - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - mkdir -p android/app/fdroid-tools
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -O android/app/fdroid-tools/baksmali.jar
-      - wget -q https://bitbucket.org/JesusFreke/smali/downloads/smali-2.5.2.jar -O android/app/fdroid-tools/smali.jar
-    scandelete:
-      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
-      - cd android && ./gradlew :app:stripPlayCoreClasses
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 VercodeOperation:
-  - '%c * 10 + 1'
-  - '%c * 10 + 2'
-  - '%c * 10 + 3'
+  - 10 * %c + 1
+  - 10 * %c + 2
+  - 10 * %c + 3
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 CurrentVersion: 0.5.0
 CurrentVersionCode: 13
-
