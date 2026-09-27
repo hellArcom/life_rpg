@@ -19,7 +19,6 @@
 
 # Hive (local database)
 -keep class com.google.android.gms.** { *; }
--keep class com.google.firebase.** { *; }
 
 # Riverpod (state management)
 -keep class com.remi.** { *; }
