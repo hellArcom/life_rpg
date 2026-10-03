@@ -42,6 +42,8 @@ Builds:
       - find .pub-cache/ -type f -path "*/example/*" -delete
       - find .pub-cache/ -type f -path "*/devtools/*" -delete
       - find .pub-cache/ -type f -path "*/extension/*" -delete
+      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
+      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
@@ -75,6 +77,8 @@ Builds:
       - find .pub-cache/ -type f -path "*/example/*" -delete
       - find .pub-cache/ -type f -path "*/devtools/*" -delete
       - find .pub-cache/ -type f -path "*/extension/*" -delete
+      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
+      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
@@ -108,6 +112,8 @@ Builds:
       - find .pub-cache/ -type f -path "*/example/*" -delete
       - find .pub-cache/ -type f -path "*/devtools/*" -delete
       - find .pub-cache/ -type f -path "*/extension/*" -delete
+      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
+      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
