@@ -33,8 +33,15 @@ Builds:
       - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
+      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
+      - find .pub-cache/ -type f -path "*/example/*" -delete
+      - find .pub-cache/ -type f -path "*/devtools/*" -delete
+      - find .pub-cache/ -type f -path "*/extension/*" -delete
       - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
@@ -60,8 +67,15 @@ Builds:
       - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
+      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
+      - find .pub-cache/ -type f -path "*/example/*" -delete
+      - find .pub-cache/ -type f -path "*/devtools/*" -delete
+      - find .pub-cache/ -type f -path "*/extension/*" -delete
       - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
@@ -87,8 +101,15 @@ Builds:
       - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
+      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
+      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
+      - find .pub-cache/ -type f -path "*/example/*" -delete
+      - find .pub-cache/ -type f -path "*/devtools/*" -delete
+      - find .pub-cache/ -type f -path "*/extension/*" -delete
       - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
