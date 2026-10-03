@@ -26,16 +26,16 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle" -exec sed -i '/com.google.android.play/d' {} +
+      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
-      - echo "configurations.all { exclude group: 'com.google.android.play' }" >> android/app/build.gradle
+      - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
@@ -53,16 +53,16 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle" -exec sed -i '/com.google.android.play/d' {} +
+      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
-      - echo "configurations.all { exclude group: 'com.google.android.play' }" >> android/app/build.gradle
+      - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
@@ -80,16 +80,16 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\\1/p" .github/workflows/release.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle" -exec sed -i '/com.google.android.play/d' {} +
+      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
       - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" \) -delete
-      - echo "configurations.all { exclude group: 'com.google.android.play' }" >> android/app/build.gradle
+      - echo 'configurations.all { exclude(group = "com.google.android.play") }' >> android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
