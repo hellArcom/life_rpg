@@ -98,3 +98,7 @@ android {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+// F-Droid compatibility: exclude Google Play services
+configurations.all {
+    exclude(group = "com.google.android.play")
+}
