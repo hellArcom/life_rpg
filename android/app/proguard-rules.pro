@@ -1,12 +1,14 @@
 # Life RPG ProGuard Rules
 
 # Flutter/Dart
+# Do NOT blanket-keep io.flutter.embedding.android/engine: that retains
+# FlutterPlayStoreSplitApplication and PlayStoreDeferredComponentManager,
+# whose Google Play Core references make the F-Droid scanner fail.
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.** { *; }
 -keep class io.flutter.util.** { *; }
 -keep class io.flutter.view.** { *; }
--keep class io.flutter.embedding.android.** { *; }
--keep class io.flutter.embedding.engine.** { *; }
+-dontwarn com.google.android.play.**
 
 # PointyCastle (cryptography)
 -keep class org.bouncycastle.** { *; }
@@ -45,11 +47,6 @@
 # Keep native methods
 -keepclasseswithmembernames class * {
     native <methods>;
-}
-
-# Keep classes with native methods
--keep class * {
-    *** nativeMethods;
 }
 
 # Don't warn about missing classes
