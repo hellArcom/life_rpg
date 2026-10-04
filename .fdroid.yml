@@ -26,7 +26,7 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=3.27.3
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
@@ -61,7 +61,7 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=3.27.3
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
@@ -96,7 +96,7 @@ Builds:
       - macos
       - web
     prebuild:
-      - flutterVersion=$(sed -n -E "s/.*flutter-version: '(.*)'/\1/p" .github/workflows/release.yml)
+      - flutterVersion=3.27.3
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
