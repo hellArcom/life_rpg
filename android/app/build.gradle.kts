@@ -93,6 +93,11 @@ android {
             }
         }
     }
+
+    // Exclude Google Play Core (splitinstall, tasks, splitcompat) - not used in single APK builds
+    packagingOptions {
+        exclude("com/google/android/play/core/**")
+    }
 }
 
 dependencies {
