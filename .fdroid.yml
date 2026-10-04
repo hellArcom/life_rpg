@@ -15,7 +15,7 @@ Repo: https://github.com/hellArcom/life_rpg.git
 Builds:
   - versionName: 0.5.0
     versionCode: 11
-    commit: c14077150e644e6526d4c749f08ee314ca45769f
+    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -23,34 +23,22 @@ Builds:
       - ios
       - linux
       - windows
-      - macos
-      - web
     prebuild:
       - flutterVersion=3.44.9
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
-      - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
-      - find .pub-cache/ -type f -path "*/example/*" -delete
-      - find .pub-cache/ -type f -path "*/devtools/*" -delete
-      - find .pub-cache/ -type f -path "*/extension/*" -delete
-      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
-      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
+    scandelete:
+      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
 
   - versionName: 0.5.0
     versionCode: 12
-    commit: c14077150e644e6526d4c749f08ee314ca45769f
+    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -58,34 +46,22 @@ Builds:
       - ios
       - linux
       - windows
-      - macos
-      - web
     prebuild:
       - flutterVersion=3.44.9
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
-      - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
-      - find .pub-cache/ -type f -path "*/example/*" -delete
-      - find .pub-cache/ -type f -path "*/devtools/*" -delete
-      - find .pub-cache/ -type f -path "*/extension/*" -delete
-      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
-      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
+    scandelete:
+      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
 
   - versionName: 0.5.0
     versionCode: 13
-    commit: c14077150e644e6526d4c749f08ee314ca45769f
+    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -93,27 +69,15 @@ Builds:
       - ios
       - linux
       - windows
-      - macos
-      - web
     prebuild:
       - flutterVersion=3.44.9
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - $$flutter$$/bin/flutter config --no-analytics
-      - find $$flutter$$ -type f -name "*.gradle*" -exec sed -i '/com.google.android.play/d' {} +
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - find .pub-cache/ -type d -name "example" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "devtools" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "_out" -exec rm -rf {} +
-      - find .pub-cache/ -type d -name "extension" -exec rm -rf {} +
-      - find .pub-cache/ -type f -name "build.gradle*" -exec sed -i '/com.google.android.play/d' {} +
-      - find .pub-cache/ -type f \( -name "*.bin" -o -name "*.wasm" -o -name "*.zip" -o -name "*.gz" -o -name "*.tgz" -o -name "*.ttf" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" \) -delete
-      - find .pub-cache/ -type f -path "*/example/*" -delete
-      - find .pub-cache/ -type f -path "*/devtools/*" -delete
-      - find .pub-cache/ -type f -path "*/extension/*" -delete
-      - find .pub-cache/ -type f -name "*.class" -path "*/com/google/android/play/*" -delete
-      - find .pub-cache/ -type f -name "*.jar" -path "*/play/*" -delete
+    scandelete:
+      - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
