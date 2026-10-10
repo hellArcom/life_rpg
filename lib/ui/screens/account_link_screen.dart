@@ -213,17 +213,21 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     );
   }
 
-  void _showLinkDialog(BuildContext context) {
+  Future<void> _showLinkDialog(BuildContext context) async {
     final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    TransitionRoute<dynamic>? dialogRoute;
     bool loading = false;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) {
+          dialogRoute = ModalRoute.of(context);
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
           title: Text(t.linkYourAccount),
           content: Form(
             key: formKey,
@@ -273,43 +277,53 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                   password: pwd,
                 );
                 if (!context.mounted) return;
-                Navigator.pop(context);
-                if (res != null && res['message'] != null) {
-                  NotificationService.showFeedback(t.success, res['message']);
-                  _loadStatus();
-                  ref.read(gameProvider.notifier).checkAccountLinkStatus();
-                  _checkAndShowMergeDialog();
-                } else {
-                  final errorMsg = res?['error'];
-                  final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
-                  NotificationService.showFeedback(t.error, msg);
-                }
+                Navigator.pop(context, res ?? <String, dynamic>{});
               },
               child: loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : Text(t.link),
             ),
           ],
-        ),
-      ),
-    ).whenComplete(() {
+            ),
+          );
+        },
+      );
+      await dialogRoute?.completed;
+
+      if (!mounted || result == null) return;
+      if (result['message'] != null) {
+        NotificationService.showFeedback(t.success, result['message'].toString());
+        await _loadStatus();
+        await ref.read(gameProvider.notifier).checkAccountLinkStatus();
+        if (mounted) await _checkAndShowMergeDialog();
+      } else {
+        final errorMsg = result['error'];
+        final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
+        NotificationService.showFeedback(t.error, msg.toString());
+      }
+    } finally {
+      await dialogRoute?.completed;
       emailController.dispose();
       passwordController.dispose();
-    });
+    }
   }
 
-  void _showCreateAccountDialog(BuildContext context) {
+  Future<void> _showCreateAccountDialog(BuildContext context) async {
     final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final usernameController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    TransitionRoute<dynamic>? dialogRoute;
     bool loading = false;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) {
+          dialogRoute = ModalRoute.of(context);
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
           title: Text(t.createAccount),
           content: SingleChildScrollView(
             child: Form(
@@ -380,30 +394,36 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                   password: pwd,
                 );
                 if (!context.mounted) return;
-                Navigator.pop(context);
-                if (res != null && res['message'] != null) {
-                  NotificationService.showFeedback(t.success, res['message']);
-                  _loadStatus();
-                  ref.read(gameProvider.notifier).checkAccountLinkStatus();
-                  _checkAndShowMergeDialog();
-                } else {
-                  final errorMsg = res?['error'];
-                  final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
-                  NotificationService.showFeedback(t.error, msg);
-                }
+                Navigator.pop(context, res ?? <String, dynamic>{});
               },
               child: loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : Text(t.createAccount),
             ),
           ],
-        ),
-      ),
-    ).whenComplete(() {
+            ),
+          );
+        },
+      );
+      await dialogRoute?.completed;
+
+      if (!mounted || result == null) return;
+      if (result['message'] != null) {
+        NotificationService.showFeedback(t.success, result['message'].toString());
+        await _loadStatus();
+        await ref.read(gameProvider.notifier).checkAccountLinkStatus();
+        if (mounted) await _checkAndShowMergeDialog();
+      } else {
+        final errorMsg = result['error'];
+        final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
+        NotificationService.showFeedback(t.error, msg.toString());
+      }
+    } finally {
+      await dialogRoute?.completed;
       emailController.dispose();
       usernameController.dispose();
       passwordController.dispose();
-    });
+    }
   }
 
   Future<void> _syncNow() async {
@@ -522,14 +542,16 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     return user.level > 1 || user.globalXp > 0 || user.coins > 0;
   }
 
-  void _checkAndShowMergeDialog() {
+  Future<void> _checkAndShowMergeDialog() async {
     final t = ref.read(translationsProvider);
-    if (!_hasLocalData()) return;
-    if (!mounted) return;
-    showDialog(
+    if (!_hasLocalData() || !mounted) return;
+    TransitionRoute<dynamic>? dialogRoute;
+    final mode = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) {
+        dialogRoute = ModalRoute.of(context);
+        return AlertDialog(
         icon: const Icon(Icons.sync_problem, size: 48, color: Colors.orange),
         title: Text(t.localDataDetected),
         content: Text(
@@ -537,32 +559,32 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'pull');
-              NotificationService.showFeedback(t.synced, t.serverDataApplied);
-            },
+            onPressed: () => Navigator.pop(context, 'pull'),
             child: Text(t.replaceByServer),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'push');
-              NotificationService.showFeedback(t.synced, t.dataSentToServer);
-            },
+            onPressed: () => Navigator.pop(context, 'push'),
             child: Text(t.sendToServer),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'merge');
-              NotificationService.showFeedback(t.synced, t.dataMerged);
-            },
+            onPressed: () => Navigator.pop(context, 'merge'),
             child: Text(t.mergeSum),
           ),
         ],
-      ),
+        );
+      },
     );
+    await dialogRoute?.completed;
+    if (!mounted || mode == null) return;
+
+    await ref.read(gameProvider.notifier).syncWithServer(mode: mode);
+    if (!mounted) return;
+    final message = switch (mode) {
+      'pull' => t.serverDataApplied,
+      'push' => t.dataSentToServer,
+      _ => t.dataMerged,
+    };
+    NotificationService.showFeedback(t.synced, message);
   }
 
   Future<void> _unlinkAccount() async {
