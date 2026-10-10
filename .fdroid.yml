@@ -13,9 +13,9 @@ RepoType: git
 Repo: https://github.com/hellArcom/life_rpg.git
 
 Builds:
-  - versionName: 0.5.0
-    versionCode: 11
-    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
+  - versionName: 0.5.1
+    versionCode: 21
+    commit: 7133f0077eb9cec343582cbd10acefbecdff10fe
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -34,11 +34,11 @@ Builds:
       - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm"
+      - $$flutter$$/bin/flutter build apk --release --dart-define=FDROID_BUILD=true --split-per-abi --target-platform="android-arm"
 
-  - versionName: 0.5.0
-    versionCode: 12
-    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
+  - versionName: 0.5.1
+    versionCode: 22
+    commit: 7133f0077eb9cec343582cbd10acefbecdff10fe
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -57,11 +57,11 @@ Builds:
       - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-arm64"
+      - $$flutter$$/bin/flutter build apk --release --dart-define=FDROID_BUILD=true --split-per-abi --target-platform="android-arm64"
 
-  - versionName: 0.5.0
-    versionCode: 13
-    commit: bccb21e010926ec3ffe26148ed9c872534a4d42d
+  - versionName: 0.5.1
+    versionCode: 23
+    commit: 7133f0077eb9cec343582cbd10acefbecdff10fe
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -80,7 +80,7 @@ Builds:
       - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release --split-per-abi --target-platform="android-x64"
+      - $$flutter$$/bin/flutter build apk --release --dart-define=FDROID_BUILD=true --split-per-abi --target-platform="android-x64"
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
@@ -89,5 +89,5 @@ VercodeOperation:
   - 10 * %c + 2
   - 10 * %c + 3
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 0.5.0
-CurrentVersionCode: 13
+CurrentVersion: 0.5.1
+CurrentVersionCode: 23

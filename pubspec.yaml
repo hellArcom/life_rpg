@@ -1,7 +1,7 @@
 name: life_rpg_dev
 description: "Life RPG Dev , https://liferpg.dpdns.org/"
 publish_to: 'none'
-version: 0.5.0+1
+version: 0.5.1+2
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -31,7 +31,7 @@ dependencies:
   vibration: ^3.2.0
   socket_io_client: ^3.1.2
   encrypt: ^5.0.3
-  flutter_secure_storage: ^9.0.0
+  flutter_secure_storage: ^10.3.4
 
 dev_dependencies:
   flutter_test:

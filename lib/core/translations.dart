@@ -97,6 +97,17 @@ class Translations {
   String get highContrast => get('highContrast');
   String get enabled => get('enabled');
   String get disabled => get('disabled');
+  String get onlineServices => get('onlineServices');
+  String get onlineServicesDesc => get('onlineServicesDesc');
+  String get serverUrl => get('serverUrl');
+  String get serverUrlDesc => get('serverUrlDesc');
+  String get invalidServerUrl => get('invalidServerUrl');
+  String get onlineServicesConsent => get('onlineServicesConsent');
+  String get onlineServicesServerHint => get('onlineServicesServerHint');
+  String get onlineServicesNeeded => get('onlineServicesNeeded');
+  String get configureAndEnableOnlineServices => get('configureAndEnableOnlineServices');
+  String get enableOnlineServices => get('enableOnlineServices');
+  String get onlineServicesNotReady => get('onlineServicesNotReady');
   String get colorBlindMode => get('colorBlindMode');
   String get chooseColorBlindMode => get('chooseColorBlindMode');
   String get protanopia => get('protanopia');
@@ -493,6 +504,17 @@ final Map<String, Map<String, String>> _translationsData = {
     'highContrast': 'Contraste élevé',
     'enabled': 'Activé',
     'disabled': 'Désactivé',
+    'onlineServices': 'Services en ligne',
+    'onlineServicesDesc': 'Désactivés par défaut. Leur activation contacte le serveur choisi et peut lui transmettre un identifiant d’installation.',
+    'serverUrl': 'URL du serveur',
+    'serverUrlDesc': 'Saisissez l’URL HTTPS d’un serveur Life RPG compatible.',
+    'invalidServerUrl': 'Saisissez une URL HTTPS valide, sans identifiants, chemin, requête ni fragment.',
+    'onlineServicesConsent': 'Pour continuer, Life RPG se connectera au serveur configuré. Le serveur recevra les requêtes nécessaires aux fonctions choisies et un identifiant persistant de cette installation. Vous pouvez désactiver ces services dans les réglages.',
+    'onlineServicesServerHint': 'Le serveur officiel est proposé ; vous pouvez saisir une autre instance compatible.',
+    'onlineServicesNeeded': 'Cette fonctionnalité nécessite une connexion au serveur Life RPG.',
+    'configureAndEnableOnlineServices': 'Configurer et activer',
+    'enableOnlineServices': 'Accepter et continuer',
+    'onlineServicesNotReady': 'La connexion au serveur n’a pas abouti. Vérifiez l’URL et réessayez.',
     'colorBlindMode': 'Mode daltonisme',
     'chooseColorBlindMode': 'Choisir le mode daltonisme',
     'protanopia': 'Protanopie (rouge)',
@@ -869,6 +891,8 @@ final Map<String, Map<String, String>> _translationsData = {
     'loading': 'Chargement...',
   },
   'en': {
+    'profile': 'Profile',
+    'level': 'Level',
     'streak': 'Streak',
     'globalXp': 'Global XP',
     'quests': 'Quests',
@@ -920,6 +944,17 @@ final Map<String, Map<String, String>> _translationsData = {
     'highContrast': 'High contrast',
     'enabled': 'Enabled',
     'disabled': 'Disabled',
+    'onlineServices': 'Online services',
+    'onlineServicesDesc': 'Off by default. Enabling them contacts the selected server and may send an installation identifier.',
+    'serverUrl': 'Server URL',
+    'serverUrlDesc': 'Enter the HTTPS URL of a compatible Life RPG server.',
+    'invalidServerUrl': 'Enter a valid HTTPS URL without credentials, path, query, or fragment.',
+    'onlineServicesConsent': 'To continue, Life RPG will connect to the configured server. The server will receive requests for the features you use and a persistent identifier for this installation. You can disable these services in Settings.',
+    'onlineServicesServerHint': 'The official server is suggested; you can enter another compatible instance.',
+    'onlineServicesNeeded': 'This feature requires a connection to the Life RPG server.',
+    'configureAndEnableOnlineServices': 'Configure and enable',
+    'enableOnlineServices': 'Accept and continue',
+    'onlineServicesNotReady': 'Could not connect to the server. Check the URL and try again.',
     'colorBlindMode': 'Color blind mode',
     'chooseColorBlindMode': 'Choose color blind mode',
     'protanopia': 'Protanopia (red)',

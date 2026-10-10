@@ -4,8 +4,11 @@ import '../services/server_service.dart';
 import '../ui/screens/update_screen.dart';
 
 class UpdateService {
+  static const bool _fdroidBuild = bool.fromEnvironment('FDROID_BUILD');
+
   // S'il n'y a pas de mise à jour à faire, rien ne s'affiche.
   static Future<void> checkForUpdate(BuildContext context) async {
+    if (_fdroidBuild || ServerService.baseUrl == null) return;
     try {
       final data = await ServerService.fetchUpdate();
       if (data == null) return;

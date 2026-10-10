@@ -5,6 +5,7 @@ import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import '../../services/server_service.dart';
 import '../../services/notification_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class AccountLinkScreen extends ConsumerStatefulWidget {
   const AccountLinkScreen({super.key});
@@ -18,6 +19,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   bool _linked = false;
   String? _lastSyncAt;
   bool _syncing = false;
+  bool _onlineEnabled = true;
 
   @override
   void initState() {
@@ -26,7 +28,12 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   Future<void> _loadStatus() async {
-    setState(() => _loading = true);
+    _onlineEnabled = ServerService.onlineServicesEnabled && ServerService.baseUrl != null;
+    setState(() => _loading = _onlineEnabled);
+    if (!_onlineEnabled) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
     final status = await ServerService.getSyncStatus();
     if (mounted && status != null) {
       setState(() {
@@ -34,7 +41,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         _lastSyncAt = status['last_sync_at'];
         _loading = false;
       });
-    } else {
+    } else if (mounted) {
       setState(() => _loading = false);
     }
   }
@@ -49,14 +56,23 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _buildStatusCard(),
-                const SizedBox(height: 24),
-                if (_linked) ...[
-                  _buildSyncSection(),
-                  const SizedBox(height: 16),
-                  _buildUnlinkButton(),
-                ] else ...[
-                  _buildLinkOrCreateSection(),
+                if (!_onlineEnabled)
+                  OnlineServicesNotice(
+                    onEnabled: () async {
+                      if (!mounted) return;
+                      setState(() => _loading = true);
+                      await _loadStatus();
+                    },
+                  )
+                else ...[
+                  _buildStatusCard(),
+                  const SizedBox(height: 24),
+                  if (_linked) ...[
+                    _buildSyncSection(),
+                    const SizedBox(height: 16),
+                    _buildUnlinkButton(),
+                  ] else
+                    _buildLinkOrCreateSection(),
                 ],
               ],
             ),

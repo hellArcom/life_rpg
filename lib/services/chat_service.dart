@@ -37,6 +37,7 @@ class ChatService {
   }
 
   static void _scheduleReconnect() {
+    if (ServerService.baseUrl == null) return;
     if (_retryCount >= _maxRetries) {
       debugPrint('ChatService: max retries ($_maxRetries) reached, giving up');
       return;
@@ -46,11 +47,12 @@ class ChatService {
     final delay = Duration(seconds: (2 * _retryCount).clamp(2, 30));
     debugPrint('ChatService: scheduling reconnect attempt $_retryCount/$_maxRetries in ${delay.inSeconds}s');
     _retryTimer = Timer(delay, () {
-      connect();
+      if (ServerService.baseUrl != null) connect();
     });
   }
 
   static Future<void> connect() async {
+    if (ServerService.baseUrl == null) return;
     if (_socket?.connected == true) {
       debugPrint('ChatService: already connected');
       return;
@@ -65,6 +67,10 @@ class ChatService {
     final deviceId = await ServerService.ensureDeviceId();
     // Use header auth preferentially; query param kept for legacy compatibility but not logged
     final url = ServerService.baseUrl;
+    if (url == null) {
+      _connecting = false;
+      return;
+    }
     debugPrint('ChatService: connecting to $url');
 
     _cleanupSocket();
@@ -93,16 +99,16 @@ class ChatService {
       debugPrint('ChatService: disconnected');
       if (_currentRoom != null) {
         _pendingJoinRoom = _currentRoom;
+        if (ServerService.baseUrl != null) _scheduleReconnect();
       }
-      _scheduleReconnect();
     });
     _socket!.onConnectError((_) {
       _connecting = false;
       debugPrint('ChatService: connection error');
       if (_currentRoom != null) {
         _pendingJoinRoom = _currentRoom;
+        if (ServerService.baseUrl != null) _scheduleReconnect();
       }
-      _scheduleReconnect();
     });
 
     _socket!.on('message', (data) {
@@ -201,6 +207,15 @@ class ChatService {
   static void leaveCurrentRoom() {
     _currentRoom = null;
     _encryptionKey = null;
+  }
+
+  static void disconnect() {
+    _currentRoom = null;
+    _encryptionKey = null;
+    _pendingJoinRoom = null;
+    _connecting = false;
+    _retryCount = 0;
+    _cleanupSocket();
   }
 
   static bool get isConnected => _socket?.connected == true;

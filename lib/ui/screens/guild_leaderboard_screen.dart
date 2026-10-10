@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
+import '../../services/server_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class GuildLeaderboardScreen extends ConsumerStatefulWidget {
   const GuildLeaderboardScreen({super.key});
@@ -14,9 +16,11 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(gameProvider.notifier).loadGuildLeaderboard();
-    });
+    if (ServerService.onlineServicesEnabled && ServerService.baseUrl != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(gameProvider.notifier).loadGuildLeaderboard();
+      });
+    }
   }
 
   Future<void> _onRefresh() async {
@@ -38,7 +42,14 @@ class _GuildLeaderboardScreenState extends ConsumerState<GuildLeaderboardScreen>
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: !ServerService.onlineServicesEnabled || ServerService.baseUrl == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: OnlineServicesNotice(onEnabled: _onRefresh),
+              ),
+            )
+          : RefreshIndicator(
         onRefresh: _onRefresh,
         child: guildLeaderboard.isEmpty
             ? ListView(

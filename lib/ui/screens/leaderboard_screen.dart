@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
+import '../../services/server_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -15,7 +17,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(gameProvider.notifier).loadLeaderboard();
+    if (ServerService.onlineServicesEnabled && ServerService.baseUrl != null) {
+      ref.read(gameProvider.notifier).loadLeaderboard();
+    }
   }
 
   Future<void> _onRefresh() async {
@@ -29,7 +33,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.globalLeaderboard)),
-      body: RefreshIndicator(
+      body: !ServerService.onlineServicesEnabled || ServerService.baseUrl == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: OnlineServicesNotice(onEnabled: _onRefresh),
+              ),
+            )
+          : RefreshIndicator(
         onRefresh: _onRefresh,
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),

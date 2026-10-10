@@ -26,9 +26,8 @@
 -keep class com.remi.** { *; }
 -keep class com.remi.flutter_riverpod.** { *; }
 
-# flutter_secure_storage
--keep class com.tekartik.sqflite.** { *; }
--keep class net.sqlcipher.** { *; }
+# flutter_secure_storage uses Android KeyStore cipher implementations.
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
 
 # json_serializable / freezed
 -keep class **.*$*Json { *; }

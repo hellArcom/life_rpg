@@ -20,50 +20,66 @@ import '../models/game_models.dart';
 class ServerService {
   ServerService._();
 
-  /// En debug : serveur local joignable via `adb reverse tcp:5000 tcp:5000`.
-  /// En release : serveur de production (surchargeable via --dart-define=SERVER_URL=...).
-  static const String _prodUrl = String.fromEnvironment(
-    'SERVER_URL',
-    defaultValue: 'https://liferpg.dpdns.org/',
-  );
-  static const String _devUrl = 'https://liferpg.dpdns.org/';
-  static String get baseUrl => kDebugMode ? _devUrl : _prodUrl;
-  static const Duration _timeout = Duration(seconds: 8);
+  /// Le serveur configuré par l'utilisateur reste injoignable tant que les
+  /// services en ligne ne sont pas activés explicitement.
+  /// Les services réseau sont désactivés jusqu'à leur activation explicite
+  /// et la configuration d'une URL HTTPS par l'utilisateur.
+  static bool get onlineServicesEnabled {
+    final settings = OfflineManager.getData('settings');
+    return settings is Map && settings['onlineServicesEnabled'] == true;
+  }
 
+  static String? get baseUrl {
+    if (!onlineServicesEnabled) return null;
+    final settings = OfflineManager.getData('settings');
+    final configuredUrl = settings is Map ? settings['serverUrl'] : null;
+    if (configuredUrl is! String || !isValidServerUrl(configuredUrl)) return null;
+    return configuredUrl.trim().replaceFirst(RegExp(r'/+$'), '');
+  }
+
+  static bool isValidServerUrl(String value) {
+    final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(normalized);
+    return uri != null &&
+        uri.scheme.toLowerCase() == 'https' &&
+        uri.host.isNotEmpty &&
+        (uri.path.isEmpty || uri.path == '/') &&
+        uri.userInfo.isEmpty &&
+        !uri.hasQuery &&
+        !uri.hasFragment;
+  }
+
+  static const Duration _timeout = Duration(seconds: 8);
   static String? _deviceId;
   static bool? _registered;
-  static const _secureStorage = FlutterSecureStorage();
+  // Migrate the legacy v9 Keystore data safely while retaining crash recovery.
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(migrateWithBackup: true, resetOnError: false),
+  );
   static const _passwordKey = 'user_password';
   static const _guildKeysPrefix = 'guild_key_';
+
+  static Future<void> resetServerRegistration() async {
+    _registered = false;
+    await OfflineManager.saveData('server_registered', false);
+  }
 
   /// HTTP client used for all requests. Overridable in tests (e.g. with a
   /// MockClient) so the network layer can be verified without a live server.
   static http.Client httpClient = http.Client();
 
-  static const _deviceIdKey = 'device_id_secure';
-  /// Identifiant unique d'installation (32 hex). Créé une fois, persisté.
-  /// Stocké à la fois en SecureStorage (prioritaire, chiffré) et Hive (compat).
+  /// Identifiant unique non secret de l'installation (32 hex), persisté dans Hive.
   static Future<String> ensureDeviceId() async {
     if (_deviceId != null) return _deviceId!;
-    // Try SecureStorage first (chiffré)
-    try {
-      final secure = await _secureStorage.read(key: _deviceIdKey);
-      if (secure != null && secure.isNotEmpty && RegExp(r'^[0-9a-f]{32}$').hasMatch(secure)) {
-        _deviceId = secure;
-        // Sync to Hive for legacy readers
-        await OfflineManager.saveData('device_id', _deviceId!);
-        return _deviceId!;
-      }
-    } catch (_) {}
+    // Reuse a locally stored identifier when available; secure storage is used
+    // only for credentials and encryption keys, not to block first-time login.
     final saved = OfflineManager.getData('device_id');
     if (saved is String && saved.isNotEmpty && RegExp(r'^[0-9a-f]{32}$').hasMatch(saved)) {
       _deviceId = saved;
-      try { await _secureStorage.write(key: _deviceIdKey, value: _deviceId!); } catch (_) {}
     } else {
       final rnd = Random.secure();
       _deviceId = List.generate(32, (_) => rnd.nextInt(16).toRadixString(16)).join();
       await OfflineManager.saveData('device_id', _deviceId!);
-      try { await _secureStorage.write(key: _deviceIdKey, value: _deviceId!); } catch (_) {}
     }
     return _deviceId!;
   }
@@ -137,41 +153,71 @@ class ServerService {
   /// Sauvegarde le mot de passe utilisateur dans le stockage sécurisé.
   /// Appelé après linkAccount/registerAccount réussis.
   static Future<void> saveUserPassword(String password) async {
-    await _secureStorage.write(key: _passwordKey, value: password);
+    try {
+      await _secureStorage.write(key: _passwordKey, value: password);
+    } catch (e) {
+      // A storage failure must not turn a successful account login into a crash.
+      // The user can still authenticate; syncing can request the password again.
+      debugPrint('ServerService: failed to save account password securely: $e');
+    }
   }
 
   /// Récupère le mot de passe utilisateur depuis le stockage sécurisé.
   /// Retourne null si pas de mot de passe stocké.
   static Future<String?> getUserPassword() async {
-    return await _secureStorage.read(key: _passwordKey);
+    try {
+      return await _secureStorage.read(key: _passwordKey);
+    } catch (e) {
+      debugPrint('ServerService: failed to read account password securely: $e');
+      return null;
+    }
   }
 
   /// Efface le mot de passe utilisateur (appelé au unlink).
   static Future<void> clearUserPassword() async {
-    await _secureStorage.delete(key: _passwordKey);
+    try {
+      await _secureStorage.delete(key: _passwordKey);
+    } catch (e) {
+      debugPrint('ServerService: failed to clear account password: $e');
+    }
   }
 
   /// Sauvegarde la clé de chiffrement d'une guilde dans le stockage sécurisé.
   static Future<void> saveGuildEncryptionKey(String guildId, String key) async {
-    await _secureStorage.write(key: '$_guildKeysPrefix$guildId', value: key);
+    try {
+      await _secureStorage.write(key: '$_guildKeysPrefix$guildId', value: key);
+    } catch (e) {
+      debugPrint('ServerService: failed to save guild encryption key: $e');
+    }
   }
 
   /// Récupère la clé de chiffrement d'une guilde depuis le stockage sécurisé.
   static Future<String?> getGuildEncryptionKey(String guildId) async {
-    return await _secureStorage.read(key: '$_guildKeysPrefix$guildId');
+    try {
+      return await _secureStorage.read(key: '$_guildKeysPrefix$guildId');
+    } catch (e) {
+      debugPrint('ServerService: failed to read guild encryption key: $e');
+      return null;
+    }
   }
 
   /// Efface la clé de chiffrement d'une guilde (appelé au leave/kick).
   static Future<void> clearGuildEncryptionKey(String guildId) async {
-    await _secureStorage.delete(key: '$_guildKeysPrefix$guildId');
+    try {
+      await _secureStorage.delete(key: '$_guildKeysPrefix$guildId');
+    } catch (e) {
+      debugPrint('ServerService: failed to clear guild encryption key: $e');
+    }
   }
 
   static Future<Map<String, dynamic>?> _post(String path, Map<String, dynamic> body) async {
     try {
+      final serverUrl = baseUrl;
+      if (serverUrl == null) return null;
       final deviceId = await ensureDeviceId();
       final resp = await httpClient
           .post(
-            Uri.parse('$baseUrl$path'),
+            Uri.parse('$serverUrl$path'),
             headers: {
               'Content-Type': 'application/json',
               'X-Device-ID': deviceId,
@@ -192,9 +238,11 @@ class ServerService {
 
   static Future<Map<String, dynamic>?> _get(String path) async {
     try {
+      final serverUrl = baseUrl;
+      if (serverUrl == null) return null;
       final deviceId = await ensureDeviceId();
       final resp = await httpClient.get(
-        Uri.parse('$baseUrl$path'),
+        Uri.parse('$serverUrl$path'),
         headers: {'X-Device-ID': deviceId},
       ).timeout(_timeout);
       if (resp.statusCode == 200) {
@@ -209,9 +257,11 @@ class ServerService {
 
   static Future<Map<String, dynamic>?> _delete(String path) async {
     try {
+      final serverUrl = baseUrl;
+      if (serverUrl == null) return null;
       final deviceId = await ensureDeviceId();
       final resp = await httpClient.delete(
-        Uri.parse('$baseUrl$path'),
+        Uri.parse('$serverUrl$path'),
         headers: {
           'Content-Type': 'application/json',
           'X-Device-ID': deviceId,
@@ -497,8 +547,10 @@ class ServerService {
   /// Health check - ping le serveur pour vérifier la connectivité
   static Future<Map<String, dynamic>?> healthCheck() async {
     try {
+      final serverUrl = baseUrl;
+      if (serverUrl == null) return null;
       final deviceId = await ensureDeviceId();
-      final url = '$baseUrl/api/v1/ping';
+      final url = '$serverUrl/api/v1/ping';
       debugPrint('ServerService healthCheck: POST $url');
       final resp = await httpClient
           .post(

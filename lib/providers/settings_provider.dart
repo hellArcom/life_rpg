@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/offline_manager.dart';
+import '../services/server_service.dart';
 
 enum ColorBlindMode {
   none,
@@ -26,6 +27,8 @@ class SettingsState {
   final double textScale;
   final ColorBlindMode colorBlindMode;
   final bool highContrast;
+  final bool onlineServicesEnabled;
+  final String serverUrl;
 
   SettingsState({
     this.themeMode = ThemeMode.dark,
@@ -33,6 +36,8 @@ class SettingsState {
     this.textScale = 1.0,
     this.colorBlindMode = ColorBlindMode.none,
     this.highContrast = false,
+    this.onlineServicesEnabled = false,
+    this.serverUrl = '',
   }) : locale = locale ?? _detectSystemLocale();
 
   SettingsState copyWith({
@@ -41,6 +46,8 @@ class SettingsState {
     double? textScale,
     ColorBlindMode? colorBlindMode,
     bool? highContrast,
+    bool? onlineServicesEnabled,
+    String? serverUrl,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
@@ -48,6 +55,8 @@ class SettingsState {
       textScale: textScale ?? this.textScale,
       colorBlindMode: colorBlindMode ?? this.colorBlindMode,
       highContrast: highContrast ?? this.highContrast,
+      onlineServicesEnabled: onlineServicesEnabled ?? this.onlineServicesEnabled,
+      serverUrl: serverUrl ?? this.serverUrl,
     );
   }
 
@@ -88,6 +97,8 @@ class SettingsState {
     'textScale': textScale,
     'colorBlindMode': colorBlindMode.name,
     'highContrast': highContrast,
+    'onlineServicesEnabled': onlineServicesEnabled,
+    'serverUrl': serverUrl,
   };
 
   factory SettingsState.fromJson(Map<String, dynamic> json) {
@@ -97,6 +108,8 @@ class SettingsState {
       textScale: (json['textScale'] ?? 1.0).toDouble(),
       colorBlindMode: ColorBlindMode.values.byName(json['colorBlindMode'] ?? 'none'),
       highContrast: json['highContrast'] ?? false,
+      onlineServicesEnabled: json['onlineServicesEnabled'] == true,
+      serverUrl: json['serverUrl'] is String ? json['serverUrl'] as String : '',
     );
   }
 }
@@ -106,7 +119,13 @@ class SettingsNotifier extends Notifier<SettingsState> {
   SettingsState build() {
     final savedData = OfflineManager.getData('settings');
     if (savedData != null && savedData is Map<String, dynamic>) {
-      return SettingsState.fromJson(savedData);
+      final settings = SettingsState.fromJson(savedData);
+      if (settings.onlineServicesEnabled && !ServerService.isValidServerUrl(settings.serverUrl)) {
+        final safeSettings = settings.copyWith(onlineServicesEnabled: false);
+        OfflineManager.saveData('settings', safeSettings.toJson());
+        return safeSettings;
+      }
+      return settings;
     }
     return SettingsState();
   }
@@ -134,6 +153,16 @@ class SettingsNotifier extends Notifier<SettingsState> {
   void setHighContrast(bool value) {
     state = state.copyWith(highContrast: value);
     _save();
+  }
+
+  Future<void> setOnlineServicesEnabled(bool value) async {
+    state = state.copyWith(onlineServicesEnabled: value);
+    await _save();
+  }
+
+  Future<void> setServerUrl(String value) async {
+    state = state.copyWith(serverUrl: value.trim());
+    await _save();
   }
 
   Future<void> _save() async {

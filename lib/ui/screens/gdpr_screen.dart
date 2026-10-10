@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import '../../services/server_service.dart';
+import '../widgets/online_services_notice.dart';
 import 'dart:io' as io;
 
 class GdprScreen extends ConsumerStatefulWidget {
@@ -35,7 +36,9 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
             t.changePassword,
             Icons.lock_outline,
             Colors.orange,
-            () => _showChangePasswordDialog(context, t),
+            () async {
+              if (await _ensureOnline(context)) _showChangePasswordDialog(context, t);
+            },
           ),
           const SizedBox(height: 12),
           _buildFeatureCard(
@@ -43,7 +46,9 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
             t.changeEmail,
             Icons.email_outlined,
             Colors.blue,
-            () => _showChangeEmailDialog(context, t),
+            () async {
+              if (await _ensureOnline(context)) _showChangeEmailDialog(context, t);
+            },
           ),
           const SizedBox(height: 12),
           _buildFeatureCard(
@@ -51,7 +56,9 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
             t.changeUsername,
             Icons.person_outline,
             Colors.teal,
-            () => _showChangeUsernameDialog(context, t),
+            () async {
+              if (await _ensureOnline(context)) _showChangeUsernameDialog(context, t);
+            },
           ),
           const SizedBox(height: 24),
           _buildSectionTitle(t.exportMyData),
@@ -60,7 +67,9 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
             t.exportMyDataDesc,
             Icons.download,
             Colors.green,
-            () => _exportServerData(context, t),
+            () async {
+              if (await _ensureOnline(context)) _exportServerData(context, t);
+            },
           ),
           const SizedBox(height: 12),
           _buildFeatureCard(
@@ -86,12 +95,19 @@ class _GdprScreenState extends ConsumerState<GdprScreen> {
             t.deleteMyDataDesc,
             Icons.delete_forever,
             Colors.red,
-            () => _showDeleteDataDialog(context, t),
+            () async {
+              if (await _ensureOnline(context)) _showDeleteDataDialog(context, t);
+            },
           ),
           const SizedBox(height: 32),
         ],
       ),
     );
+  }
+
+  Future<bool> _ensureOnline(BuildContext context) async {
+    if (!mounted) return false;
+    return enableOnlineServices(context, ref);
   }
 
   Widget _buildSectionTitle(String title) {

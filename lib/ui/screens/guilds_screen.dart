@@ -5,6 +5,7 @@ import '../../models/game_models.dart';
 import '../../providers/game_provider.dart';
 import '../../services/server_service.dart';
 import 'account_link_screen.dart';
+import '../widgets/online_services_notice.dart';
 import 'guild_leaderboard_screen.dart';
 
 class GuildsScreen extends ConsumerStatefulWidget {
@@ -28,7 +29,11 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _chatController = TextEditingController();
-    _loadGuilds();
+    if (ServerService.onlineServicesEnabled && ServerService.baseUrl != null) {
+      _loadGuilds();
+    } else {
+      _loading = false;
+    }
   }
 
   @override
@@ -136,9 +141,16 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
               )
             : null,
       ),
-      body: currentGuild != null
-          ? _buildGuildDetail(context, ref, currentGuild, gameState)
-          : Column(
+      body: !ServerService.onlineServicesEnabled || ServerService.baseUrl == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: OnlineServicesNotice(onEnabled: _loadGuilds),
+              ),
+            )
+          : currentGuild != null
+              ? _buildGuildDetail(context, ref, currentGuild, gameState)
+              : Column(
               children: [
                 if (!linked)
                   Container(
@@ -158,7 +170,14 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
                             ),
                           ),
                           TextButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              if (!ServerService.onlineServicesEnabled || ServerService.baseUrl == null) {
+                                final enabled = await enableOnlineServices(context, ref);
+                                if (!enabled || !context.mounted) return;
+                                await ref.read(gameProvider.notifier).loadMyGuilds();
+                                await ref.read(gameProvider.notifier).loadAvailableGuilds();
+                              }
+                              if (!context.mounted) return;
                               Navigator.push(context, MaterialPageRoute(
                                 builder: (_) => const AccountLinkScreen(),
                               ));

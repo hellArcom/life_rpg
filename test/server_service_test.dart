@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:hive/hive.dart';
+import 'package:life_rpg_dev/core/offline_manager.dart';
+import 'package:life_rpg_dev/providers/settings_provider.dart';
 import 'package:life_rpg_dev/models/game_models.dart';
 import 'package:life_rpg_dev/services/server_service.dart';
 
@@ -36,7 +38,11 @@ void main() {
     box = await Hive.openBox('game_data');
   });
 
-  setUp(() {
+  setUp(() async {
+    await OfflineManager.saveData('settings', {
+      'onlineServicesEnabled': true,
+      'serverUrl': 'https://example.test',
+    });
     captured = {};
     requests = [];
     handler = (_) async => http.Response('{}', 200);
@@ -51,6 +57,26 @@ void main() {
     final r = req as http.Request;
     return jsonDecode(r.body) as Map<String, dynamic>;
   }
+
+  test('online services are disabled by default and make no HTTP request', () async {
+    await OfflineManager.saveData('settings', {'onlineServicesEnabled': false});
+    final defaults = SettingsState.fromJson({'themeMode': 'dark'});
+
+    expect(defaults.onlineServicesEnabled, isFalse);
+    expect(ServerService.onlineServicesEnabled, isFalse);
+    expect(ServerService.baseUrl, isNull);
+    expect(await ServerService.fetchUpdate(), isNull);
+    expect(requests, isEmpty);
+  });
+
+  test('only a valid HTTPS origin is accepted as a server URL', () {
+    expect(ServerService.isValidServerUrl('https://example.test'), isTrue);
+    expect(ServerService.isValidServerUrl('https://example.test/'), isTrue);
+    expect(ServerService.isValidServerUrl('http://example.test'), isFalse);
+    expect(ServerService.isValidServerUrl('https://user@example.test'), isFalse);
+    expect(ServerService.isValidServerUrl('https://example.test/path'), isFalse);
+    expect(ServerService.isValidServerUrl('https://example.test?x=1'), isFalse);
+  });
 
   test('register posts to /api/v1/register with device_id + X-Device-ID header', () async {
     handler = (_) async => http.Response(jsonEncode({
@@ -178,7 +204,15 @@ void main() {
     expect(decrypted['badgeIds'], contains('a'));
   });
 
-  test('account link posts email/password/device_id', () async {
+  test('account link remains successful when secure storage cannot save credentials', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+      (call) async => throw PlatformException(
+        code: 'Exception encountered',
+        message: 'write failed',
+      ),
+    );
     handler = (_) async => http.Response(jsonEncode({'message': 'Compte lié avec succès'}), 200);
     final res = await ServerService.linkAccount(email: 'a@b.com', password: 'password123');
     expect(res!['message'], contains('lié'));
@@ -187,5 +221,10 @@ void main() {
     expect(body['email'], 'a@b.com');
     expect(body['password'], 'password123');
     expect(body['device_id'], isA<String>());
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+      (call) async => null,
+    );
   });
 }
