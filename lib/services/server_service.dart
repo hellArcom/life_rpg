@@ -24,9 +24,9 @@ class ServerService {
   /// En release : serveur de production (surchargeable via --dart-define=SERVER_URL=...).
   static const String _prodUrl = String.fromEnvironment(
     'SERVER_URL',
-    defaultValue: 'https://liferpg.dpdns.org/',
+    defaultValue: 'https://liferpg.dpdns.org',
   );
-  static const String _devUrl = 'https://liferpg.dpdns.org/';
+  static const String _devUrl = 'https://liferpg.dpdns.org';
   static String get baseUrl => kDebugMode ? _devUrl : _prodUrl;
   static const Duration _timeout = Duration(seconds: 8);
 
@@ -70,18 +70,22 @@ class ServerService {
 
   /// Dérive une clé AES-256 à partir du mot de passe utilisateur via PBKDF2-SHA256.
   /// Le sel est généré aléatoirement côté serveur (600k itérations OWASP 2024).
-  static Uint8List _deriveKey(String password, String salt) {
+  /// Calcul CPU-intensif (600k itérations) : exécuté hors du thread principal.
+  static Uint8List _deriveKeySync(List<String> args) {
     final derivator = pc_pbkdf2.PBKDF2KeyDerivator(pc_hmac.HMac(pc_digest.SHA256Digest(), 64))
-      ..init(pc_kd_api.Pbkdf2Parameters(Uint8List.fromList(salt.codeUnits), 600000, 32));
-    return derivator.process(Uint8List.fromList(password.codeUnits));
+      ..init(pc_kd_api.Pbkdf2Parameters(Uint8List.fromList(args[1].codeUnits), 600000, 32));
+    return derivator.process(Uint8List.fromList(args[0].codeUnits));
   }
+
+  static Future<Uint8List> _deriveKey(String password, String salt) =>
+      compute(_deriveKeySync, [password, salt]);
 
   /// Chiffre les données de sync avec la clé dérivée du mot de passe.
   /// Retourne un Map avec les données chiffrées (base64), l'IV (base64) et le sel (base64).
-  static Map<String, String> _encryptSyncData(Map<String, dynamic> data, String password, {String? salt}) {
+  static Future<Map<String, String>> _encryptSyncData(Map<String, dynamic> data, String password, {String? salt}) async {
     final saltBytes = salt != null ? base64Decode(salt) : _generateRandomSalt();
     final finalSalt = base64Encode(saltBytes);
-    final keyBytes = _deriveKey(password, finalSalt);
+    final keyBytes = await _deriveKey(password, finalSalt);
     final key = encrypt.Key(keyBytes);
     final iv = encrypt.IV.fromSecureRandom(12);
     final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
@@ -101,10 +105,10 @@ class ServerService {
   }
 
   /// Déchiffre les données de sync avec la clé dérivée du mot de passe.
-  static Map<String, dynamic>? _decryptSyncData(Map<String, dynamic> encData, String password) {
+  static Future<Map<String, dynamic>?> _decryptSyncData(Map<String, dynamic> encData, String password) async {
     try {
       final salt = encData['salt'] as String? ?? '';
-      final keyBytes = _deriveKey(password, salt);
+      final keyBytes = await _deriveKey(password, salt);
       final key = encrypt.Key(keyBytes);
       final iv = encrypt.IV(base64Decode(encData['iv'] as String));
       final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
@@ -159,6 +163,33 @@ class ServerService {
   /// Récupère la clé de chiffrement d'une guilde depuis le stockage sécurisé.
   static Future<String?> getGuildEncryptionKey(String guildId) async {
     return await _secureStorage.read(key: '$_guildKeysPrefix$guildId');
+  }
+
+  /// Sauvegarde la clé courante et les anciennes clés nécessaires à l'historique.
+  static Future<void> saveGuildEncryptionKeys(String guildId, List<String> keys) async {
+    final validKeys = keys.where((key) => RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(key)).toSet();
+    if (validKeys.isEmpty) return;
+    await _secureStorage.write(
+      key: '$_guildKeysPrefix$guildId',
+      value: jsonEncode(validKeys.toList()),
+    );
+  }
+
+  /// Retourne les clés courante et précédentes, en acceptant l'ancien stockage simple.
+  static Future<List<String>> getGuildEncryptionKeys(String guildId) async {
+    final stored = await _secureStorage.read(key: '$_guildKeysPrefix$guildId');
+    if (stored == null || stored.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(stored);
+      if (decoded is List) {
+        return decoded.whereType<String>()
+            .where((key) => RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(key))
+            .toList();
+      }
+    } on FormatException {
+      if (RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(stored)) return [stored];
+    }
+    return [];
   }
 
   /// Efface la clé de chiffrement d'une guilde (appelé au leave/kick).
@@ -587,7 +618,7 @@ class ServerService {
     
     if (password != null && password.isNotEmpty) {
       // Chiffrement côté client avec clé dérivée du mot de passe + salt aléatoire
-      final enc = _encryptSyncData(localData, password);
+      final enc = await _encryptSyncData(localData, password);
       body['data'] = enc['data'];
       body['iv'] = enc['iv'];
       body['salt'] = enc['salt'];
@@ -600,7 +631,7 @@ class ServerService {
   }
 
   /// Déchiffre la réponse de sync si elle est chiffrée
-  static Map<String, dynamic>? decryptSyncResponse(Map<String, dynamic> response, String password) {
+  static Future<Map<String, dynamic>?> decryptSyncResponse(Map<String, dynamic> response, String password) async {
     if (response['encrypted'] == true && response['data'] != null && response['iv'] != null && response['salt'] != null) {
       return _decryptSyncData({
         'data': response['data'],

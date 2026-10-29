@@ -184,7 +184,7 @@ class UserProfile {
       'acc': 'acc_0',
     },
     this.unlockedCharacterParts = const [
-      'skin_1', 'skin_2', 'skin_3',
+      'skin_1', 'skin_2', 'skin_3', 'skin_4', 'skin_5',
       'hair_1',
       'eyes_1',
       'brow_1',
@@ -230,8 +230,8 @@ class UserProfile {
     CharacterPartDefinition('skin_1', 'skin', 'Clair',    1, 0, Color(0xFFFFE0BD), Color(0xFFD4A574)),
     CharacterPartDefinition('skin_2', 'skin', 'Doré',     1, 0, Color(0xFFF1C27D), Color(0xFFD9A05B)),
     CharacterPartDefinition('skin_3', 'skin', 'Moyen',    1, 0, Color(0xFFD99B6C), Color(0xFFB87D4A)),
-    CharacterPartDefinition('skin_4', 'skin', 'Foncé',    5, 0, Color(0xFF8D5524), Color(0xFF6B3F1A)),
-    CharacterPartDefinition('skin_5', 'skin', 'Ébène',   10, 0, Color(0xFF5D3A1A), Color(0xFF3D2510)),
+    CharacterPartDefinition('skin_4', 'skin', 'Foncé',    1, 0, Color(0xFF8D5524), Color(0xFF6B3F1A)),
+    CharacterPartDefinition('skin_5', 'skin', 'Noir',    1, 0, Color(0xFF5D3A1A), Color(0xFF3D2510)),
     // Hair (8)
     CharacterPartDefinition('hair_0', 'hair', 'Chauve',   1, 0, Color(0xFF2C1810), Color(0xFF4A2C20)),
     CharacterPartDefinition('hair_1', 'hair', 'Court',    1, 0, Color(0xFF2C1810), Color(0xFF4A2C20)),
@@ -377,7 +377,7 @@ class UserProfile {
       return fb;
     }
     const defParts = {'skin': 'skin_1','hair': 'hair_1','eyes': 'eyes_1','brow': 'brow_1','mouth': 'mouth_1','outfit': 'outfit_1','hat': 'hat_0','acc': 'acc_0'};
-    const defUnlocked = ['skin_1','skin_2','skin_3','hair_1','eyes_1','brow_1','mouth_1','outfit_1','hat_0','acc_0'];
+    const defUnlocked = ['skin_1','skin_2','skin_3','skin_4','skin_5','hair_1','eyes_1','brow_1','mouth_1','outfit_1','hat_0','acc_0'];
     return UserProfile(
       uid: json['uid']?.toString() ?? '1',
       pseudo: json['pseudo']?.toString() ?? 'Héros',
@@ -395,7 +395,12 @@ class UserProfile {
       dailyRewardDay: _safeInt(json['dailyRewardDay'], 0),
       lastDailyRewardDate: _safeDate(json['lastDailyRewardDate']),
       characterParts: _safeStrMap(json['characterParts'], defParts),
-      unlockedCharacterParts: _safeStrList(json['unlockedCharacterParts']).isEmpty ? defUnlocked : _safeStrList(json['unlockedCharacterParts']),
+      unlockedCharacterParts: (() {
+        final saved = _safeStrList(json['unlockedCharacterParts']);
+        final base = saved.isEmpty ? defUnlocked : saved;
+        // Skin tones are free from the start: keep them even for older saves.
+        return {...base, 'skin_1', 'skin_2', 'skin_3', 'skin_4', 'skin_5'}.toList();
+      })(),
       xpMultiplier: _safeDouble(json['xpMultiplier'], 1.0),
       claimedStreakMilestones: (() {
         final raw = json['claimedStreakMilestones'];

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_rpg_dev/core/translations.dart';
+import 'package:life_rpg_dev/models/game_models.dart';
 
 void main() {
   group('Translations coverage', () {
@@ -52,6 +53,17 @@ void main() {
       expect(Translations(Translations.en).get('coins'), isNotEmpty);
       expect(Translations(Translations.en).get('this_key_does_not_exist'),
           equals('this_key_does_not_exist'));
+    });
+
+    test('every character part has a label in every language', () {
+      for (final lang in Translations.allLanguages.keys) {
+        final data = Translations.allLanguages[lang]!;
+        final missing = [
+          for (final part in UserProfile.allParts)
+            if (!data.containsKey('part_${part.id}')) part.id,
+        ];
+        expect(missing, isEmpty, reason: 'parts missing in $lang: $missing');
+      }
     });
 
     test('fr and en are not identical (real translations)', () {

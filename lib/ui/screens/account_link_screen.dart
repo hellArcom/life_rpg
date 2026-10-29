@@ -276,10 +276,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    ).whenComplete(() {
-      emailController.dispose();
-      passwordController.dispose();
-    });
+    );
   }
 
   void _showCreateAccountDialog(BuildContext context) {
@@ -383,11 +380,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    ).whenComplete(() {
-      emailController.dispose();
-      usernameController.dispose();
-      passwordController.dispose();
-    });
+    );
   }
 
   Future<void> _syncNow() async {
@@ -417,7 +410,8 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     setState(() => _syncing = false);
     
     // Déchiffrer la réponse si nécessaire
-    final serverData = ServerService.decryptSyncResponse(res ?? {}, password);
+    final serverData = await ServerService.decryptSyncResponse(res ?? {}, password);
+    if (!mounted) return;
     if (serverData != null) {
       final serverLevel = serverData['level'] as int? ?? user.level;
       final serverXp = serverData['globalXp'] as int? ?? user.globalXp;
@@ -495,7 +489,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         ),
       );
     } finally {
-      controller.dispose();
+      // Pas de dispose ici : le dialogue est encore animé à la fermeture.
     }
     return result;
   }

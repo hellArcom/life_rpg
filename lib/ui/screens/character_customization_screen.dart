@@ -84,7 +84,7 @@ class CharacterCustomizationScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      part.label,
+                                      _partLabel(part, t),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -145,6 +145,12 @@ class CharacterCustomizationScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _partLabel(CharacterPartDefinition part, Translations t) {
+    final key = 'part_${part.id}';
+    final localized = t.get(key);
+    return localized == key ? part.label : localized;
   }
 
   String _catLabel(String cat, Translations t) {

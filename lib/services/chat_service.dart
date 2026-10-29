@@ -9,6 +9,7 @@ class ChatService {
   static IO.Socket? _socket;
   static String? _currentRoom;
   static String? _encryptionKey;
+  static List<String> _encryptionKeys = [];
   static String? _pendingJoinRoom;
   static bool _connecting = false;
   static Timer? _retryTimer;
@@ -111,20 +112,26 @@ class ChatService {
         final msg = Map<String, dynamic>.from(data);
         final room = msg['room'] as String?;
         debugPrint('ChatService: message room=$room, currentRoom=$_currentRoom, hasEncryptionKey=${_encryptionKey != null}');
-        if (_currentRoom != null && _currentRoom == room && _encryptionKey != null && msg['content'] is String) {
+        if (_currentRoom != null && _currentRoom == room && msg['content'] is String) {
           final content = msg['content'] as String;
           if (content.startsWith('enc:v1:')) {
-            final decrypted = decryptMessage(content.substring(7), _encryptionKey!);
-            // Detect decryption failure (returns original encrypted string)
-            if (decrypted == content.substring(7)) {
-              debugPrint('ChatService: decryption failed, triggering key refresh');
+            final payload = content.substring(7);
+            final key = _encryptionKey;
+            if (key == null) {
+              debugPrint('ChatService: encrypted message received without a key');
               _onDecryptionFailure?.call();
+              msg['content'] = '[Message chiffré — clé indisponible]';
+            } else {
+              final decrypted = decryptWithAvailableKeys(payload, [key, ..._encryptionKeys]);
+              if (decrypted == null) {
+                debugPrint('ChatService: decryption failed, triggering key refresh');
+                _onDecryptionFailure?.call();
+                msg['content'] = '[Message chiffré — déchiffrement impossible]';
+              } else {
+                msg['content'] = decrypted;
+              }
             }
-            msg['content'] = decrypted;
-            debugPrint('ChatService: message decrypted');
           }
-        } else if (_currentRoom != null && _currentRoom == room && msg['content'] is String && (msg['content'] as String).startsWith('enc:v1:') && _encryptionKey == null) {
-          debugPrint('ChatService: WARNING - encrypted message received but _encryptionKey is null, cannot decrypt');
         }
         for (final cb in _onMessageCallbacks) {
           try { cb(msg); } catch (e) { debugPrint('ChatService: onMessage callback error: $e'); }
@@ -140,18 +147,26 @@ class ChatService {
           if (item is Map) {
             final msg = Map<String, dynamic>.from(item);
             final room = msg['room'] as String?;
-            if (_currentRoom == room && _encryptionKey != null && msg['content'] is String) {
+            if (_currentRoom == room && msg['content'] is String) {
               final content = msg['content'] as String;
               if (content.startsWith('enc:v1:')) {
-                final dec = decryptMessage(content.substring(7), _encryptionKey!);
-                if (dec == content.substring(7)) {
-                  debugPrint('ChatService: history decryption failed, triggering key refresh');
+                final payload = content.substring(7);
+                final key = _encryptionKey;
+                if (key == null) {
+                  debugPrint('ChatService: encrypted history message received without a key');
                   _onDecryptionFailure?.call();
+                  msg['content'] = '[Message chiffré — clé indisponible]';
+                } else {
+                  final decrypted = decryptWithAvailableKeys(payload, [key, ..._encryptionKeys]);
+                  if (decrypted == null) {
+                    debugPrint('ChatService: history decryption failed, triggering key refresh');
+                    _onDecryptionFailure?.call();
+                    msg['content'] = '[Message chiffré — déchiffrement impossible]';
+                  } else {
+                    msg['content'] = decrypted;
+                  }
                 }
-                msg['content'] = dec;
               }
-            } else if (_currentRoom == room && msg['content'] is String && (msg['content'] as String).startsWith('enc:v1:') && _encryptionKey == null) {
-              debugPrint('ChatService: WARNING - encrypted message in history but _encryptionKey is null, cannot decrypt');
             }
             decrypted.add(msg);
           }
@@ -182,10 +197,26 @@ class ChatService {
     _socket!.connect();
   }
 
-  static Future<void> joinGuildRoom(String guildId, {String? encryptionKey}) async {
+  static String? decryptWithAvailableKeys(String payload, Iterable<String> keys) {
+    for (final key in keys.toSet()) {
+      final decrypted = decryptMessage(payload, key);
+      if (decrypted != payload) return decrypted;
+    }
+    return null;
+  }
+
+  static Future<void> joinGuildRoom(
+    String guildId, {
+    String? encryptionKey,
+    List<String> encryptionKeys = const [],
+  }) async {
     debugPrint('ChatService.joinGuildRoom: guildId=$guildId, isConnected=$isConnected, connecting=$_connecting, hasEncryptionKey=${encryptionKey != null}');
     if (!isConnected) await connect();
     _encryptionKey = encryptionKey;
+    _encryptionKeys = [
+      ...encryptionKeys,
+      if (encryptionKey != null) encryptionKey,
+    ].where((key) => RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(key)).toSet().toList();
     _currentRoom = 'guild_$guildId';
     // If already connected, emit join immediately
     if (_socket?.connected == true) {
@@ -201,6 +232,7 @@ class ChatService {
   static void leaveCurrentRoom() {
     _currentRoom = null;
     _encryptionKey = null;
+    _encryptionKeys = [];
   }
 
   static bool get isConnected => _socket?.connected == true;
@@ -239,46 +271,51 @@ class ChatService {
 
   static String encryptMessage(String plaintext, String hexKey) {
     try {
-      final keyBytes = _hexToBytes(hexKey);
-      final key = encrypt.Key(Uint8List.fromList(keyBytes));
+      final key = encrypt.Key(Uint8List.fromList(_hexToBytes(hexKey)));
       final iv = encrypt.IV.fromSecureRandom(12);
       final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
       final encrypted = encrypter.encrypt(plaintext, iv: iv);
-      final combined = Uint8List(iv.bytes.length + encrypted.bytes.length);
-      combined.setRange(0, iv.bytes.length, iv.bytes);
-      combined.setRange(iv.bytes.length, combined.length, encrypted.bytes);
-      return base64Encode(combined);
+      // Shared web/mobile wire format: enc:v1:<base64 IV>:<base64 ciphertext+tag>.
+      return '${base64Encode(iv.bytes)}:${base64Encode(encrypted.bytes)}';
     } catch (e) {
       debugPrint('ChatService encrypt error: $e');
-      return plaintext;
+      rethrow;
     }
   }
 
-  static String decryptMessage(String encBase64, String hexKey) {
+  static String decryptMessage(String payload, String hexKey) {
     try {
-      final combined = base64Decode(encBase64);
-      // Valid encrypted message: IV (12 bytes) + ciphertext (>=16 bytes for auth tag)
-      if (combined.length < 28) {
-        debugPrint('ChatService decrypt: data too short (${combined.length} bytes), returning original');
-        return encBase64;
+      final key = encrypt.Key(Uint8List.fromList(_hexToBytes(hexKey)));
+      late final encrypt.IV iv;
+      late final List<int> ciphertext;
+      if (payload.contains(':')) {
+        // Current browser format separates the 12-byte IV and authenticated data.
+        final parts = payload.split(':');
+        if (parts.length != 2) throw const FormatException('Invalid encrypted message');
+        iv = encrypt.IV(base64Decode(parts[0]));
+        ciphertext = base64Decode(parts[1]);
+      } else {
+        // Previous mobile releases stored IV + ciphertext together in one base64 value.
+        final combined = base64Decode(payload);
+        if (combined.length < 28) throw const FormatException('Encrypted message is too short');
+        iv = encrypt.IV(combined.sublist(0, 12));
+        ciphertext = combined.sublist(12);
       }
-      final keyBytes = _hexToBytes(hexKey);
-      final key = encrypt.Key(Uint8List.fromList(keyBytes));
-      final iv = encrypt.IV(combined.sublist(0, 12));
-      final ciphertext = combined.sublist(12);
+      if (iv.bytes.length != 12 || ciphertext.length < 16) {
+        throw const FormatException('Invalid AES-GCM message size');
+      }
       final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
-      return encrypter.decrypt(encrypt.Encrypted(ciphertext), iv: iv);
+      return encrypter.decrypt(encrypt.Encrypted(Uint8List.fromList(ciphertext)), iv: iv);
     } catch (e) {
       debugPrint('ChatService decrypt error: $e');
-      return encBase64;
+      return payload;
     }
   }
 
   static List<int> _hexToBytes(String hex) {
-    final result = <int>[];
-    for (var i = 0; i < hex.length; i += 2) {
-      result.add(int.parse(hex.substring(i, i + 2), radix: 16));
+    if (hex.length != 64 || !RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(hex)) {
+      throw const FormatException('Guild key must be 32-byte hexadecimal');
     }
-    return result;
+    return [for (var i = 0; i < hex.length; i += 2) int.parse(hex.substring(i, i + 2), radix: 16)];
   }
 }

@@ -171,7 +171,7 @@ void main() {
     final pull = await ServerService.syncData({}, mode: 'pull', password: 'pw123');
     expect(pull, isNotNull);
     expect(pull!['encrypted'], isTrue);
-    final decrypted = ServerService.decryptSyncResponse(pull, 'pw123');
+    final decrypted = await ServerService.decryptSyncResponse(pull, 'pw123');
     expect(decrypted, isNotNull);
     expect(decrypted!['level'], 7);
     expect(decrypted['coins'], 50);

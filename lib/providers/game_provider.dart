@@ -333,6 +333,238 @@ GameState copyWith({
   }
 }
 
+Map<String, dynamic> normalizeImportedGameData(String jsonString) {
+  final decoded = jsonDecode(jsonString);
+  if (decoded is! Map) {
+    throw const FormatException('Le fichier doit contenir un objet de sauvegarde JSON.');
+  }
+  final data = Map<String, dynamic>.from(decoded);
+  const rootUserFields = {
+    'uid', 'pseudo', 'avatarUrl', 'title', 'globalXp', 'level', 'streak',
+    'lastCheckIn', 'badgeIds', 'badges', 'coins', 'soundVolume', 'soundEnabled',
+    'hapticLevel', 'streakFreezeDaysLeft', 'streakFreezeActive', 'dailyRewardDay',
+    'lastDailyRewardDate', 'characterParts', 'unlockedCharacterParts',
+    'xpMultiplier', 'claimedStreakMilestones', 'referralCode', 'referredBy',
+    'referralSubmitted',
+  };
+  const knownDataKeys = {
+    'user', 'skills', 'quests', 'rewards', 'categories', 'bets',
+    'availableBadges', 'shopItems', 'lootBoxes', 'lootBoxProgress',
+    'weeklyXpLog', 'lastWeeklyLogWeekStart', 'lastPenaltyDate',
+    'eveningLog', 'currentGuild', 'availableGuilds', 'myGuilds',
+    'guildLeaderboard', 'guildMembers', 'guildInvitations', 'guildQuests',
+    'guildLogs', 'guildMessages', 'leaderboard', 'guildEncryptionKeys',
+    'celebrationPending', 'dataVersion', 'isAccountLinked', 'guildOffline',
+    // Legacy formats
+    'globalXp', 'level', 'coins', 'streak', 'pseudo', 'uid',
+  };
+  if (!data.keys.any(knownDataKeys.contains)) {
+    throw const FormatException('Aucune donnée de sauvegarde Life RPG reconnue.');
+  }
+  final rawUser = data['user'];
+  if (rawUser != null && rawUser is! Map) {
+    throw const FormatException('Le profil de la sauvegarde est invalide.');
+  }
+  final user = rawUser is Map
+      ? Map<String, dynamic>.from(rawUser)
+      : <String, dynamic>{};
+  for (final field in rootUserFields) {
+    if (!user.containsKey(field) && data.containsKey(field)) user[field] = data[field];
+  }
+  if (user.isNotEmpty) {
+    data['user'] = _normalizeImportedNumericFields(user, {
+      'globalXp', 'level', 'streak', 'coins', 'hapticLevel',
+      'streakFreezeDaysLeft', 'dailyRewardDay', 'xpMultiplier', 'soundVolume',
+    });
+    final importedUser = data['user'] as Map<String, dynamic>;
+    for (final key in {'badgeIds', 'badges', 'unlockedCharacterParts', 'claimedStreakMilestones'}) {
+      final value = importedUser[key];
+      if (value != null && value is! List) {
+        throw FormatException('Le champ "user.$key" doit être une liste.');
+      }
+    }
+    final characterParts = importedUser['characterParts'];
+    if (characterParts != null && characterParts is! Map) {
+      throw const FormatException('Le champ "user.characterParts" doit être un objet.');
+    }
+  }
+  for (final entry in {
+    'lastWeeklyLogWeekStart': data['lastWeeklyLogWeekStart'],
+    'lastPenaltyDate': data['lastPenaltyDate'],
+  }.entries) {
+    if (entry.value != null && (entry.value is! String || DateTime.tryParse(entry.value as String) == null)) {
+      throw FormatException('La date du champ "${entry.key}" est invalide.');
+    }
+  }
+  final rawWeeklyXp = data['weeklyXpLog'];
+  if (rawWeeklyXp is List) {
+    final normalized = <int>[];
+    for (final value in rawWeeklyXp) {
+      if (value == null) {
+        normalized.add(0);
+      } else if (value is num) {
+        normalized.add(value.toInt());
+      } else if (value is String && int.tryParse(value.trim()) != null) {
+        normalized.add(int.parse(value.trim()));
+      } else {
+        throw const FormatException('Le journal XP hebdomadaire contient une valeur invalide.');
+      }
+    }
+    data['weeklyXpLog'] = normalized.length > 7
+        ? normalized.sublist(normalized.length - 7)
+        : [...List<int>.filled(7 - normalized.length, 0), ...normalized];
+  }
+  data['lootBoxProgress'] = _normalizeImportedNumericFields(
+    {'lootBoxProgress': data['lootBoxProgress'] ?? 0},
+    {'lootBoxProgress'},
+  )['lootBoxProgress'];
+  const listKeys = {
+    'skills', 'quests', 'rewards', 'categories', 'bets', 'availableBadges',
+    'shopItems', 'lootBoxes', 'eveningLog', 'availableGuilds', 'myGuilds',
+    'guildLeaderboard', 'guildMembers', 'guildInvitations', 'guildQuests',
+    'guildLogs', 'guildMessages', 'leaderboard',
+  };
+  const mapKeys = {'currentGuild', 'guildEncryptionKeys'};
+  for (final key in mapKeys) {
+    if (data[key] != null && data[key] is! Map) {
+      throw FormatException('Le champ "$key" doit être un objet.');
+    }
+  }
+  for (final key in listKeys) {
+    if (data[key] != null && data[key] is! List) {
+      throw FormatException('Le champ "$key" doit être une liste.');
+    }
+  }
+  final migrated = migrateData(data);
+  _validateImportedList(migrated, 'skills', const {'category'});
+  _validateImportedList(migrated, 'quests', const {'id', 'title', 'category'});
+  _validateImportedList(migrated, 'rewards', const {'id', 'title'});
+  _validateImportedList(migrated, 'categories', const {'id', 'label'});
+  _validateImportedList(migrated, 'bets', const {'id', 'title', 'deadline'});
+  _validateImportedList(migrated, 'availableBadges', const {'id', 'title'});
+  _validateImportedList(migrated, 'shopItems', const {'id', 'name', 'type'});
+  _validateImportedList(migrated, 'lootBoxes', const {'id', 'name'});
+  _validateImportedList(migrated, 'availableGuilds', const {'id', 'name'});
+  _validateImportedList(migrated, 'myGuilds', const {'id', 'name'});
+  _validateImportedList(migrated, 'guildLeaderboard', const {'id', 'name'});
+  _validateImportedList(migrated, 'guildMembers', const {'id'});
+  _validateImportedList(migrated, 'guildInvitations', const {'id'});
+  _validateImportedList(migrated, 'guildQuests', const {'id', 'title'});
+  _validateImportedList(migrated, 'guildLogs', const {'id'});
+  _validateImportedList(migrated, 'eveningLog', const {'date', 'text', 'mood'});
+  _validateImportedList(migrated, 'guildMessages', const {'id', 'text'});
+  _validateImportedList(migrated, 'leaderboard', const {'pseudo'});
+  final currentGuild = migrated['currentGuild'];
+  if (currentGuild is Map &&
+      (currentGuild['id'] == null || currentGuild['name'] == null ||
+          currentGuild['id'].toString().trim().isEmpty || currentGuild['name'].toString().trim().isEmpty)) {
+    throw const FormatException('La guilde active de la sauvegarde est invalide.');
+  }
+  try {
+    final state = GameState.fromJson(migrated);
+    if (migrated['currentGuild'] != null && state.currentGuild == null) {
+      throw const FormatException('Le champ "currentGuild" contient des données invalides.');
+    }
+    for (final entry in {
+      'availableGuilds': state.availableGuilds,
+      'myGuilds': state.myGuilds,
+      'guildLeaderboard': state.guildLeaderboard,
+    }.entries) {
+      final raw = migrated[entry.key] as List?;
+      if (raw != null && entry.value.length != raw.length) {
+        throw FormatException('Certaines entrées du champ "${entry.key}" sont invalides.');
+      }
+    }
+    final parsedCounts = <String, int>{
+      'skills': state.skills.length,
+      'quests': state.quests.length,
+      'rewards': state.rewards.length,
+      'categories': state.categories.length,
+      'bets': state.bets.length,
+      'availableBadges': state.availableBadges.length,
+      'shopItems': state.shopItems.length,
+      'lootBoxes': state.lootBoxes.length,
+      'eveningLog': state.eveningLog.length,
+      'availableGuilds': state.availableGuilds.length,
+      'myGuilds': state.myGuilds.length,
+      'guildLeaderboard': state.guildLeaderboard.length,
+      'guildMembers': state.guildMembers.length,
+      'guildInvitations': state.guildInvitations.length,
+      'guildQuests': state.guildQuests.length,
+      'guildLogs': state.guildLogs.length,
+      'guildMessages': state.guildMessages.length,
+      'leaderboard': state.leaderboard.length,
+    };
+    for (final entry in parsedCounts.entries) {
+      final raw = migrated[entry.key];
+      if (raw is List && raw.length != entry.value) {
+        throw FormatException('Certaines entrées du champ "${entry.key}" sont invalides.');
+      }
+    }
+  } on FormatException {
+    rethrow;
+  } catch (error) {
+    throw FormatException('Les données de sauvegarde ne sont pas reconnues : $error');
+  }
+  return migrated;
+}
+
+Map<String, dynamic> _normalizeImportedNumericFields(
+  Map<String, dynamic> values,
+  Set<String> fields,
+) {
+  final normalized = Map<String, dynamic>.from(values);
+  for (final field in fields) {
+    final value = normalized[field];
+    if (value == null || value is num) continue;
+    if (value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null && parsed.isFinite) {
+        normalized[field] = parsed is int || field == 'xpMultiplier' || field == 'soundVolume'
+            ? parsed
+            : parsed.toInt();
+        continue;
+      }
+    }
+    throw FormatException('La valeur du champ "$field" est invalide.');
+  }
+  return normalized;
+}
+
+void _validateImportedList(
+  Map<String, dynamic> data,
+  String key,
+  Set<String> requiredFields,
+) {
+  final raw = data[key];
+  if (raw == null) return;
+  if (raw is! List) {
+    throw FormatException('Le champ "$key" doit être une liste.');
+  }
+  for (var i = 0; i < raw.length; i++) {
+    final item = raw[i];
+    if (item is! Map) {
+      throw FormatException('L’entrée $i de "$key" est invalide.');
+    }
+    final map = Map<String, dynamic>.from(item);
+    if (key == 'skills' || key == 'quests') {
+      if (map['category'] is! Map) {
+        throw FormatException('La catégorie de l’entrée $i de "$key" est invalide.');
+      }
+      try {
+        Map<String, dynamic>.from(map['category'] as Map);
+      } catch (_) {
+        throw FormatException('La catégorie de l’entrée $i de "$key" est invalide.');
+      }
+    }
+    for (final field in requiredFields) {
+      if (map[field] == null || map[field].toString().trim().isEmpty) {
+        throw FormatException('Le champ "$field" manque dans l’entrée $i de "$key".');
+      }
+    }
+  }
+}
+
 class GameNotifier extends Notifier<GameState> {
   @override
   GameState build() {
@@ -1058,19 +1290,10 @@ class GameNotifier extends Notifier<GameState> {
   }
 
   void importData(String jsonString) {
-    try {
-      final data = jsonDecode(jsonString);
-      if (data is Map<String, dynamic>) {
-        final migrated = migrateData(data);
-        final parsedState = GameState.fromJson(migrated);
-        OfflineManager.saveData('game_data', parsedState.toJson());
-        state = parsedState;
-      } else {
-        debugPrint("Erreur d'importation : les données décodées ne sont pas une Map.");
-      }
-    } catch (e, stacktrace) {
-      debugPrint("Erreur lors de l'importation des données : $e\n$stacktrace");
-    }
+    final migrated = normalizeImportedGameData(jsonString);
+    final parsedState = GameState.fromJson(migrated);
+    OfflineManager.saveData('game_data', parsedState.toJson());
+    state = parsedState;
   }
 
   void updatePseudo(String newPseudo) {
@@ -1275,7 +1498,7 @@ class GameNotifier extends Notifier<GameState> {
       // Déchiffrer la réponse si chiffrement E2E utilisé
       Map<String, dynamic>? data;
       if (password != null && password.isNotEmpty) {
-        final serverData = ServerService.decryptSyncResponse(res, password);
+        final serverData = await ServerService.decryptSyncResponse(res, password);
         if (serverData != null) {
           data = serverData;
         } else {
@@ -1542,14 +1765,13 @@ class GameNotifier extends Notifier<GameState> {
     // Handle encryption key rotation from server
     final guildId = state.currentGuild?.id;
     final newKey = res['encryption_key'] as String?;
-    if (newKey != null && guildId != null) {
-      await ServerService.saveGuildEncryptionKey(guildId, newKey);
-      debugPrint('leaveGuild: encryption key rotated and cached in secure storage');
-    }
-    // Clear the guild key from secure storage when leaving
+    // Clear all guild keys locally when leaving; the new key is available only to remaining members.
     if (guildId != null) {
       await ServerService.clearGuildEncryptionKey(guildId);
-      debugPrint('leaveGuild: encryption key cleared from secure storage');
+      debugPrint('leaveGuild: encryption keys cleared from secure storage');
+    }
+    if (newKey != null) {
+      debugPrint('leaveGuild: server rotated the guild encryption key');
     }
     state = state.copyWith(clearCurrentGuild: true, guildMembers: [], guildMessages: [], myGuilds: []);
     ChatService.leaveCurrentRoom();
@@ -1620,30 +1842,38 @@ class GameNotifier extends Notifier<GameState> {
       if (key == null) {
         debugPrint('_connectChat: getGuildChatKey returned null, retrying once...');
         final retryRes = await ServerService.getGuildChatKey(guild.id);
+        res = retryRes;
         key = retryRes?['key'] as String?;
         debugPrint('_connectChat: retry getGuildChatKey result: $key');
       }
       
       // Fallback: use secure storage cached encryption key if server fetch failed
+      var encryptionKeys = <String>[];
+      if (res != null && res['keys'] is List) {
+        encryptionKeys = (res['keys'] as List).whereType<String>().toList();
+      }
       if (key == null) {
-        key = await ServerService.getGuildEncryptionKey(guild.id);
+        final cachedKeys = await ServerService.getGuildEncryptionKeys(guild.id);
+        encryptionKeys = [...cachedKeys, ...encryptionKeys].toSet().toList();
+        key = cachedKeys.isNotEmpty ? cachedKeys.first : await ServerService.getGuildEncryptionKey(guild.id);
         if (key != null) {
           debugPrint('_connectChat: using secure storage cached encryption key for guild ${guild.id}');
         } else {
           debugPrint('_connectChat: WARNING - no encryption key available (server fetch failed and no secure storage cache)');
         }
       } else {
-        // Successfully fetched key from server, cache it in secure storage
-        await ServerService.saveGuildEncryptionKey(guild.id, key);
-        debugPrint('_connectChat: encryption key cached in secure storage for guild ${guild.id}');
+        if (!encryptionKeys.contains(key)) encryptionKeys.add(key);
+        await ServerService.saveGuildEncryptionKeys(guild.id, encryptionKeys);
+        debugPrint('_connectChat: encryption keys cached in secure storage for guild ${guild.id}');
       }
+      if (key != null && !encryptionKeys.contains(key)) encryptionKeys.add(key);
       
       debugPrint('_connectChat: encryption key = ${key != null ? "SET (${key.length} chars)" : "NULL"}');
       debugPrint('_connectChat: calling ChatService.connect()');
       await ChatService.connect();
       debugPrint('_connectChat: ChatService.connect() returned');
       debugPrint('_connectChat: calling joinGuildRoom');
-      ChatService.joinGuildRoom(guild.id, encryptionKey: key);
+      await ChatService.joinGuildRoom(guild.id, encryptionKey: key, encryptionKeys: encryptionKeys);
       debugPrint('_connectChat: joinGuildRoom returned');
 
       // Bind socket reception handlers once (they are static and accumulate)
@@ -1732,8 +1962,10 @@ class GameNotifier extends Notifier<GameState> {
 
         // Handle decryption failure - re-fetch guild encryption key and re-join
         ChatService.onDecryptionFailure(() {
+          final guildId = _activeGuildId;
+          if (guildId == null) return;
           debugPrint('_connectChat: decryption failure detected, re-fetching guild key');
-          _refreshGuildEncryptionKey(guild.id);
+          _refreshGuildEncryptionKey(guildId);
         });
       } else {
         // Re-attach to the freshly selected guild's room
@@ -1753,10 +1985,18 @@ class GameNotifier extends Notifier<GameState> {
       final res = await ServerService.getGuildChatKey(guildId);
       final key = res?['key'] as String?;
       if (key != null) {
-        // Cache in secure storage
-        await ServerService.saveGuildEncryptionKey(guildId, key);
+        // Ignore a delayed response if the user has switched guilds meanwhile.
+        if (_activeGuildId != guildId || state.currentGuild?.id != guildId) return;
+        final keys = res?['keys'] is List
+            ? (res!['keys'] as List).whereType<String>().toList()
+            : <String>[];
+        if (keys.isNotEmpty) {
+          await ServerService.saveGuildEncryptionKeys(guildId, keys);
+        } else {
+          await ServerService.saveGuildEncryptionKey(guildId, key);
+        }
         debugPrint('_refreshGuildEncryptionKey: key refreshed and cached in secure storage');
-        ChatService.joinGuildRoom(guildId, encryptionKey: key);
+        await ChatService.joinGuildRoom(guildId, encryptionKey: key, encryptionKeys: keys);
       } else {
         debugPrint('_refreshGuildEncryptionKey: failed to fetch key from server');
       }
@@ -1859,9 +2099,15 @@ class GameNotifier extends Notifier<GameState> {
       // Handle encryption key rotation from server
       final newKey = res['encryption_key'] as String?;
       if (newKey != null) {
-        await ServerService.saveGuildEncryptionKey(guildId, newKey);
-        // Re-join chat room with new key
-        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        if (_activeGuildId == guildId) {
+          final keysRes = await ServerService.getGuildChatKey(guildId);
+          final keys = keysRes?['keys'] is List
+              ? (keysRes!['keys'] as List).whereType<String>().toList()
+              : <String>[];
+          if (!keys.contains(newKey)) keys.add(newKey);
+          await ServerService.saveGuildEncryptionKeys(guildId, keys);
+          await ChatService.joinGuildRoom(guildId, encryptionKey: newKey, encryptionKeys: keys);
+        }
         debugPrint('kickMember: encryption key rotated and cached in secure storage');
       }
       await _refreshGuildData(guildId);
@@ -1874,8 +2120,15 @@ class GameNotifier extends Notifier<GameState> {
       // Handle encryption key rotation from server
       final newKey = res['encryption_key'] as String?;
       if (newKey != null) {
-        await ServerService.saveGuildEncryptionKey(guildId, newKey);
-        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        if (_activeGuildId == guildId) {
+          final keysRes = await ServerService.getGuildChatKey(guildId);
+          final keys = keysRes?['keys'] is List
+              ? (keysRes!['keys'] as List).whereType<String>().toList()
+              : <String>[];
+          if (!keys.contains(newKey)) keys.add(newKey);
+          await ServerService.saveGuildEncryptionKeys(guildId, keys);
+          await ChatService.joinGuildRoom(guildId, encryptionKey: newKey, encryptionKeys: keys);
+        }
         debugPrint('promoteMember: encryption key rotated and cached in secure storage');
       }
       await _refreshGuildData(guildId);
@@ -1888,8 +2141,15 @@ class GameNotifier extends Notifier<GameState> {
       // Handle encryption key rotation from server
       final newKey = res['encryption_key'] as String?;
       if (newKey != null) {
-        await ServerService.saveGuildEncryptionKey(guildId, newKey);
-        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        if (_activeGuildId == guildId) {
+          final keysRes = await ServerService.getGuildChatKey(guildId);
+          final keys = keysRes?['keys'] is List
+              ? (keysRes!['keys'] as List).whereType<String>().toList()
+              : <String>[];
+          if (!keys.contains(newKey)) keys.add(newKey);
+          await ServerService.saveGuildEncryptionKeys(guildId, keys);
+          await ChatService.joinGuildRoom(guildId, encryptionKey: newKey, encryptionKeys: keys);
+        }
         debugPrint('demoteMember: encryption key rotated and cached in secure storage');
       }
       await _refreshGuildData(guildId);
@@ -1902,8 +2162,15 @@ class GameNotifier extends Notifier<GameState> {
       // Handle encryption key rotation from server
       final newKey = res['encryption_key'] as String?;
       if (newKey != null) {
-        await ServerService.saveGuildEncryptionKey(guildId, newKey);
-        ChatService.joinGuildRoom(guildId, encryptionKey: newKey);
+        if (_activeGuildId == guildId) {
+          final keysRes = await ServerService.getGuildChatKey(guildId);
+          final keys = keysRes?['keys'] is List
+              ? (keysRes!['keys'] as List).whereType<String>().toList()
+              : <String>[];
+          if (!keys.contains(newKey)) keys.add(newKey);
+          await ServerService.saveGuildEncryptionKeys(guildId, keys);
+          await ChatService.joinGuildRoom(guildId, encryptionKey: newKey, encryptionKeys: keys);
+        }
         debugPrint('transferOwnership: encryption key rotated and cached in secure storage');
       }
       await _refreshGuildData(guildId);

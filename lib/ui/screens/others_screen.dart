@@ -68,8 +68,9 @@ class _OthersScreenState extends ConsumerState<OthersScreen> {
       } catch (e) {
         debugPrint('Import error: $e');
         if (mounted) {
+          final details = e is FormatException ? e.message : t.importError;
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(t.importError)));
+              SnackBar(content: Text('${t.importError}: $details')));
         }
       }
     }
