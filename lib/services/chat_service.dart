@@ -116,20 +116,16 @@ class ChatService {
           final content = msg['content'] as String;
           if (content.startsWith('enc:v1:')) {
             final payload = content.substring(7);
-            final key = _encryptionKey;
-            if (key == null) {
-              debugPrint('ChatService: encrypted message received without a key');
+            final candidates = [if (_encryptionKey != null) _encryptionKey!, ..._encryptionKeys];
+            final decrypted = candidates.isEmpty ? null : decryptWithAvailableKeys(payload, candidates);
+            if (decrypted == null) {
+              debugPrint('ChatService: decryption failed (keys=${candidates.length}), triggering key refresh');
               _onDecryptionFailure?.call();
-              msg['content'] = '[Message chiffré — clé indisponible]';
+              msg['content'] = candidates.isEmpty
+                  ? '[Message chiffré — clé indisponible]'
+                  : '[Message chiffré — déchiffrement impossible]';
             } else {
-              final decrypted = decryptWithAvailableKeys(payload, [key, ..._encryptionKeys]);
-              if (decrypted == null) {
-                debugPrint('ChatService: decryption failed, triggering key refresh');
-                _onDecryptionFailure?.call();
-                msg['content'] = '[Message chiffré — déchiffrement impossible]';
-              } else {
-                msg['content'] = decrypted;
-              }
+              msg['content'] = decrypted;
             }
           }
         }
@@ -151,20 +147,16 @@ class ChatService {
               final content = msg['content'] as String;
               if (content.startsWith('enc:v1:')) {
                 final payload = content.substring(7);
-                final key = _encryptionKey;
-                if (key == null) {
-                  debugPrint('ChatService: encrypted history message received without a key');
+                final candidates = [if (_encryptionKey != null) _encryptionKey!, ..._encryptionKeys];
+                final decrypted = candidates.isEmpty ? null : decryptWithAvailableKeys(payload, candidates);
+                if (decrypted == null) {
+                  debugPrint('ChatService: history decryption failed (keys=${candidates.length}), triggering key refresh');
                   _onDecryptionFailure?.call();
-                  msg['content'] = '[Message chiffré — clé indisponible]';
+                  msg['content'] = candidates.isEmpty
+                      ? '[Message chiffré — clé indisponible]'
+                      : '[Message chiffré — déchiffrement impossible]';
                 } else {
-                  final decrypted = decryptWithAvailableKeys(payload, [key, ..._encryptionKeys]);
-                  if (decrypted == null) {
-                    debugPrint('ChatService: history decryption failed, triggering key refresh');
-                    _onDecryptionFailure?.call();
-                    msg['content'] = '[Message chiffré — déchiffrement impossible]';
-                  } else {
-                    msg['content'] = decrypted;
-                  }
+                  msg['content'] = decrypted;
                 }
               }
             }

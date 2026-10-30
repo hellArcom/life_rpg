@@ -407,7 +407,7 @@ class UserProfile {
         if (raw is List) return raw.whereType<int>().toList();
         if (raw is List) {
           final out=<int>[];
-          for(final v in raw){ if(v is int) out.add(v); else if(v is num) out.add(v.toInt());}
+          for(final v in raw){ if(v is int) {out.add(v);} else if(v is num) {out.add(v.toInt());}}
           return out;
         }
         return <int>[];

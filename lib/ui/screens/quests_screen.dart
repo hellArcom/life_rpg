@@ -75,16 +75,22 @@ class _QuestList extends ConsumerWidget {
       return Center(child: Text(t.noQuestsInCategory, style: const TextStyle(color: Colors.grey)));
     }
 
+    // Quêtes non terminées en haut, terminées en bas (ordre relatif conservé).
+    final sortedQuests = [
+      ...quests.where((q) => q.status != QuestStatus.completed),
+      ...quests.where((q) => q.status == QuestStatus.completed),
+    ];
+
     return ReorderableListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: quests.length,
+      itemCount: sortedQuests.length,
       onReorderItem: (oldIndex, newIndex) {
-        final questId = quests[oldIndex].id;
-        final beforeQuestId = newIndex < quests.length ? quests[newIndex].id : null;
+        final questId = sortedQuests[oldIndex].id;
+        final beforeQuestId = newIndex < sortedQuests.length ? sortedQuests[newIndex].id : null;
         ref.read(gameProvider.notifier).reorderQuests(questId, beforeQuestId);
       },
       itemBuilder: (context, index) {
-        final quest = quests[index];
+        final quest = sortedQuests[index];
         return _QuestCard(
           key: ValueKey(quest.id),
           quest: quest, 

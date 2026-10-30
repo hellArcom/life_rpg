@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -47,7 +46,7 @@ void main() {
     });
   });
 
-  Future<Map<String, dynamic>> _bodyOf(http.BaseRequest req) async {
+  Future<Map<String, dynamic>> bodyOf(http.BaseRequest req) async {
     final r = req as http.Request;
     return jsonDecode(r.body) as Map<String, dynamic>;
   }
@@ -65,7 +64,7 @@ void main() {
 
     final regReq = requests.where((r) => r.url.path == '/api/v1/register').first;
     expect(regReq.method, 'POST');
-    final body = await _bodyOf(regReq);
+    final body = await bodyOf(regReq);
     expect(body['device_id'], isA<String>());
     expect(regReq.headers['X-Device-ID'], body['device_id']);
   });
@@ -89,7 +88,7 @@ void main() {
     final res = await ServerService.submitReferral('ABC234XY');
     expect(res!['status'], 'ok');
     final req = requests.where((r) => r.url.path == '/api/v1/referral/submit').first;
-    final body = await _bodyOf(req);
+    final body = await bodyOf(req);
     expect(body['code'], 'ABC234XY');
     expect(body['device_id'], isA<String>());
   });
@@ -183,9 +182,40 @@ void main() {
     final res = await ServerService.linkAccount(email: 'a@b.com', password: 'password123');
     expect(res!['message'], contains('lié'));
     final req = requests.where((r) => r.url.path == '/api/v1/account/link').first;
-    final body = await _bodyOf(req);
+    final body = await bodyOf(req);
     expect(body['email'], 'a@b.com');
     expect(body['password'], 'password123');
+    expect(body['device_id'], isA<String>());
+  });
+
+  // Régression "XP des classements jamais à jour" : la sync étant chiffrée
+  // E2E, le serveur ne pouvait pas lire l'XP. L'app envoie maintenant les
+  // statistiques publiques en clair à part du blob chiffré.
+  test('syncData E2E envoie aussi les stats de classement en clair', () async {
+    handler = (_) async => http.Response(jsonEncode({'message': 'Synchronisé'}), 200);
+    await ServerService.syncData(
+      {'level': 3, 'globalXp': 120, 'badgeIds': ['a']},
+      mode: 'merge',
+      password: 'secret-pass',
+    );
+
+    final req = requests.firstWhere((r) => r.url.path == '/api/v1/account/sync');
+    final body = await bodyOf(req);
+    expect(body['encrypted'], isTrue);
+    expect(body['data'], isNot(contains('globalXp'))); // blob chiffré
+    expect(body['stats'], {'level': 3, 'globalXp': 120, 'badgeIds': ['a']});
+  });
+
+  test('pushStats n\'envoie que les stats (mode push, sans sauvegarde)', () async {
+    handler = (_) async => http.Response(jsonEncode({'message': 'Synchronisé'}), 200);
+    await ServerService.pushStats({'level': 4, 'globalXp': 200});
+
+    final req = requests.firstWhere((r) => r.url.path == '/api/v1/account/sync');
+    final body = await bodyOf(req);
+    // 'push' : une baisse d'XP doit atteindre le classement (pas de maximum).
+    expect(body['mode'], 'push');
+    expect(body['stats'], {'level': 4, 'globalXp': 200});
+    expect(body.containsKey('data'), isFalse);
     expect(body['device_id'], isA<String>());
   });
 }

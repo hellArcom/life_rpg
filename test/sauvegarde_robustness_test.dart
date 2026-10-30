@@ -202,7 +202,7 @@ void main() {
         expect(e, isA<FormatException>());
       }
       // importData with wrong shape
-      final notifierFake = () {
+      void checkWrongShape() {
         try {
           final data = jsonDecode('{"quests": "not_a_list"}');
           if (data is Map<String, dynamic>) {
@@ -214,8 +214,8 @@ void main() {
         } catch (e) {
           fail('should not throw $e');
         }
-      };
-      notifierFake();
+      }
+      checkWrongShape();
     });
   });
 

@@ -83,6 +83,15 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
 
     return Scaffold(
       appBar: AppBar(
+        // Retour à la liste des guildes : c'est là qu'on choisit celle à voir
+        // et qu'on change de guilde quand on en a plusieurs.
+        leading: currentGuild != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: t.back,
+                onPressed: () => ref.read(gameProvider.notifier).closeGuild(),
+              )
+            : null,
         title: Row(
           children: [
             Text(t.guilds),
@@ -120,6 +129,29 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
           ],
         ),
         actions: [
+          // Sélecteur rapide : basculer entre les guildes sans repasser par la liste.
+          if (currentGuild != null && gameState.myGuilds.length > 1)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.swap_horiz),
+              tooltip: t.guilds,
+              onSelected: (id) => ref.read(gameProvider.notifier).selectGuild(id),
+              itemBuilder: (_) => [
+                for (final g in gameState.myGuilds)
+                  PopupMenuItem<String>(
+                    value: g.id,
+                    child: Row(
+                      children: [
+                        if (g.id == currentGuild.id)
+                          const Icon(Icons.check, size: 18)
+                        else
+                          const SizedBox(width: 18),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(g.name, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadGuilds,
@@ -690,14 +722,19 @@ class _GuildsScreenState extends ConsumerState<GuildsScreen>
   }
 
   Widget _buildQuestsList(List<GuildQuest> quests) {
+    // Quêtes actives en haut, terminées en bas (ordre relatif conservé).
+    final sortedQuests = [
+      ...quests.where((q) => q.status == GuildQuestStatus.active),
+      ...quests.where((q) => q.status != GuildQuestStatus.active),
+    ];
     return RefreshIndicator(
       onRefresh: () => ref.read(gameProvider.notifier).loadGuildQuests(ref.read(gameProvider).currentGuild?.id ?? ''),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        itemCount: quests.length,
+        itemCount: sortedQuests.length,
         itemBuilder: (context, index) {
-          final q = quests[index];
+          final q = sortedQuests[index];
           final isActive = q.status == GuildQuestStatus.active;
           return Card(
             margin: const EdgeInsets.only(bottom: 8),

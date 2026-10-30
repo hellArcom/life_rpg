@@ -623,10 +623,33 @@ class ServerService {
       body['iv'] = enc['iv'];
       body['salt'] = enc['salt'];
       body['encrypted'] = true;
+      // Le serveur ne peut pas déchiffrer le blob : on transmet en clair les
+      // seuls champs affichés dans les classements (XP, niveau...), pour que
+      // les classements restent à jour même avec le chiffrement E2E.
+      // Seuls les champs publics (classements) sortent en clair, jamais le reste.
+      body['stats'] = {
+        for (final k in const ['level', 'globalXp', 'coins', 'streak', 'badgeIds', 'total_quests_completed'])
+          if (localData.containsKey(k)) k: localData[k],
+      };
     } else {
       body['data'] = localData;
     }
     
+    return _post('/api/v1/account/sync', body);
+  }
+
+  /// Envoie uniquement les statistiques de classement (sans la sauvegarde).
+  /// Appelé à chaque changement d'XP/niveau pour que les classements soient
+  /// à jour en continu et pas seulement au lancement de l'app.
+  /// Mode 'push' : l'app a déjà fusionné le serveur (loadLeaderboard /
+  /// syncWithServer) avant d'envoyer, donc une baisse d'XP (pénalité) doit
+  /// être reflétée. En 'merge' le serveur garderait l'ancien maximum.
+  static Future<Map<String, dynamic>?> pushStats(Map<String, dynamic> stats) async {
+    final body = <String, dynamic>{
+      'device_id': await ensureDeviceId(),
+      'mode': 'push',
+      'stats': stats,
+    };
     return _post('/api/v1/account/sync', body);
   }
 

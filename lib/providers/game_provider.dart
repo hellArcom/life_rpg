@@ -321,9 +321,13 @@ GameState copyWith({
       if (raw is! List) return List.filled(7, 0);
       final list = <int>[];
       for (final v in raw) {
-        if (v is int) list.add(v);
-        else if (v is num) list.add(v.toInt());
-        else list.add(0);
+        if (v is int) {
+          list.add(v);
+        } else if (v is num) {
+          list.add(v.toInt());
+        } else {
+          list.add(0);
+        }
       }
       if (list.length != 7) return List.filled(7, 0);
       return list;
@@ -334,7 +338,12 @@ GameState copyWith({
 }
 
 Map<String, dynamic> normalizeImportedGameData(String jsonString) {
-  final decoded = jsonDecode(jsonString);
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(jsonString);
+  } on FormatException {
+    throw const FormatException('Le fichier n’est pas un JSON valide : ce n’est pas une sauvegarde Life RPG lisible.');
+  }
   if (decoded is! Map) {
     throw const FormatException('Le fichier doit contenir un objet de sauvegarde JSON.');
   }
@@ -664,6 +673,9 @@ class GameNotifier extends Notifier<GameState> {
 
   Timer? _saveTimer;
   int _saveCounter = 0;
+  Timer? _statsPushTimer;
+  String? _lastPushedStats;
+  DateTime? _lastStatsPushAt;
 
   void _saveAllToHive({bool force = false}) {
     _saveCounter++;
@@ -713,6 +725,10 @@ class GameNotifier extends Notifier<GameState> {
           quests: todayQuests,
         );
 
+        // Les classements lisent les stats serveur : on les pousse dès qu'elles
+        // changent (et pas seulement au prochain lancement de l'app).
+        _scheduleStatsPush();
+
         // Periodic Hive compaction (every 50 saves)
         if (_saveCounter % 50 == 0) {
           _compactHive();
@@ -721,6 +737,51 @@ class GameNotifier extends Notifier<GameState> {
         debugPrint("Erreur lors de la sauvegarde Hive: $e");
       }
     });
+  }
+
+  /// Empreinte des statistiques affichées dans les classements.
+  String _statsFingerprint() {
+    final user = state.user;
+    final completed =
+        state.quests.where((q) => q.status == QuestStatus.completed).length;
+    return '${user.level}|${user.globalXp}|${user.coins}|${user.streak}|'
+        '$completed|${user.badgeIds.join(',')}';
+  }
+
+  /// Programme un envoi des statistiques si elles ont changé (debounce 3 s).
+  void _scheduleStatsPush() {
+    if (!state.isAccountLinked) return;
+    if (_statsFingerprint() == _lastPushedStats) return;
+    _statsPushTimer?.cancel();
+    _statsPushTimer = Timer(const Duration(seconds: 3), _pushStatsNow);
+  }
+
+  /// Envoie level/XP/pièces/streak/badges au serveur même quand la sauvegarde
+  /// complète est chiffrée E2E : ce sont les seuls champs des classements.
+  Future<void> _pushStatsNow() async {
+    if (!state.isAccountLinked) return;
+    final fingerprint = _statsFingerprint();
+    if (fingerprint == _lastPushedStats) return;
+    // Ce point d'entrée est limité à 30 requêtes/minute côté serveur.
+    final last = _lastStatsPushAt;
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(seconds: 5)) {
+      _statsPushTimer = Timer(const Duration(seconds: 5), _pushStatsNow);
+      return;
+    }
+    _lastStatsPushAt = DateTime.now();
+    final user = state.user;
+    final completed =
+        state.quests.where((q) => q.status == QuestStatus.completed).length;
+    final res = await ServerService.pushStats({
+      'level': user.level,
+      'globalXp': user.globalXp,
+      'coins': user.coins,
+      'streak': user.streak,
+      'badgeIds': user.badgeIds,
+      'total_quests_completed': completed,
+    });
+    if (res != null) _lastPushedStats = fingerprint;
   }
 
   Future<void> _compactHive() async {
@@ -1820,6 +1881,22 @@ class GameNotifier extends Notifier<GameState> {
     }
   }
 
+  /// Ferme la vue de guilde active pour revenir à la liste des guilde : c'est
+  /// depuis cette liste qu'on change de guilde (plusieurs guildes possibles).
+  void closeGuild() {
+    if (state.currentGuild == null) return;
+    ChatService.leaveCurrentRoom();
+    _activeGuildId = null;
+    state = state.copyWith(
+      clearCurrentGuild: true,
+      guildMembers: [],
+      guildQuests: [],
+      guildLogs: [],
+      guildMessages: [],
+    );
+    _saveAllToHive(force: true);
+  }
+
   void selectGuild(String guildId) {
     final guild = state.myGuilds.where((g) => g.id == guildId).firstOrNull;
     if (guild != null) {
@@ -1854,7 +1931,7 @@ class GameNotifier extends Notifier<GameState> {
       }
       if (key == null) {
         final cachedKeys = await ServerService.getGuildEncryptionKeys(guild.id);
-        encryptionKeys = [...cachedKeys, ...encryptionKeys].toSet().toList();
+        encryptionKeys = {...cachedKeys, ...encryptionKeys}.toList();
         key = cachedKeys.isNotEmpty ? cachedKeys.first : await ServerService.getGuildEncryptionKey(guild.id);
         if (key != null) {
           debugPrint('_connectChat: using secure storage cached encryption key for guild ${guild.id}');
