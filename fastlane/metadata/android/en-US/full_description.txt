@@ -18,13 +18,13 @@ Turn your real life into a role-playing game. Life RPG lets you define your own 
 <b>Deep gameplay systems</b>
 * A skill tree to specialize your hero
 * A shop to spend your coins
-* Guilds, a leaderboard and referral codes to play with friends
+* Guilds, a leaderboard and referral codes to play with friends (online services are optional and disabled until configured)
 * Optional bets to add stakes to your habits
 * Weekly summaries and statistics to follow your progress
 
 <b>Privacy first</b>
-* Everything is stored locally on your device
-* Optional synchronization with your own Life RPG server (self-hosted)
-* No ads, no trackers, no account required
+* Local game progress is stored on your device; online account synchronization is optional
+* Online features (guilds, chat, leaderboard, account sync and referrals) require an explicitly configured HTTPS Life RPG server and are disabled by default. When enabled, requests may include a persistent installation identifier.
+* No ads or third-party analytics; no account is required for local play
 
 Life RPG is free and open source software (GPL-3.0).

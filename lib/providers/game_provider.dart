@@ -1504,7 +1504,13 @@ class GameNotifier extends Notifier<GameState> {
 
   /// Synchronisation au lancement : enregistre l'app + ping + applique les
   /// récompenses de parrainage en attente + synchronise les données de compte.
+  void setOnlineServicesDisabled() {
+    state = state.copyWith(guildOffline: true);
+  }
+
   Future<void> syncWithServer({String mode = 'merge'}) async {
+    if (ServerService.baseUrl == null) return;
+    state = state.copyWith(guildOffline: false);
     try {
       final code = ensureReferralCode();
       if (!await ServerService.isRegistered()) {
@@ -2495,6 +2501,10 @@ class ServerStatusNotifier extends Notifier<ServerStatus> {
 
   @override
   ServerStatus build() {
+    ref.onDispose(() => _timer?.cancel());
+    if (!ServerService.onlineServicesEnabled || ServerService.baseUrl == null) {
+      return ServerStatus.unknown;
+    }
     _startPeriodicCheck();
     // Initial check
     _checkServer();
@@ -2507,6 +2517,7 @@ class ServerStatusNotifier extends Notifier<ServerStatus> {
   }
 
   Future<void> _checkServer() async {
+    if (!ServerService.onlineServicesEnabled || ServerService.baseUrl == null) return;
     try {
       final res = await ServerService.healthCheck();
       if (!ref.mounted) return;

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
+import '../../services/server_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class ReferralScreen extends ConsumerStatefulWidget {
   const ReferralScreen({super.key});
@@ -52,6 +54,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   }
 
   Future<void> _submit() async {
+    if (!await enableOnlineServices(context, ref)) return;
     final notifier = ref.read(gameProvider.notifier);
     setState(() {
       _sending = true;
@@ -77,6 +80,9 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (!ServerService.onlineServicesEnabled || ServerService.baseUrl == null)
+            OnlineServicesNotice(onEnabled: () async {}),
+          const SizedBox(height: 16),
           // Mon code
           Container(
             padding: const EdgeInsets.all(16),

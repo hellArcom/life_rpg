@@ -6,6 +6,7 @@ import '../../models/game_models.dart';
 import '../../core/translations.dart';
 import '../../providers/game_provider.dart';
 import '../../services/update_service.dart';
+import '../../services/server_service.dart';
 import '../../services/notification_service.dart';
 import 'home_screen.dart';
 import 'quests_screen.dart';
@@ -42,7 +43,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       NotificationService.scheduleDailyProactiveReminder();
       NotificationService.scheduleEveningEntryReminder();
       ref.read(gameProvider.notifier).syncWithServer();
-      if (context.mounted) {
+      if (context.mounted && ServerService.baseUrl != null) {
         UpdateService.checkForUpdate(context);
       }
     });

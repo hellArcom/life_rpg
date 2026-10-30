@@ -5,6 +5,7 @@ import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
 import '../../services/server_service.dart';
 import '../../services/notification_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class AccountLinkScreen extends ConsumerStatefulWidget {
   const AccountLinkScreen({super.key});
@@ -18,6 +19,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   bool _linked = false;
   String? _lastSyncAt;
   bool _syncing = false;
+  bool _onlineEnabled = true;
 
   @override
   void initState() {
@@ -26,7 +28,12 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
   }
 
   Future<void> _loadStatus() async {
-    setState(() => _loading = true);
+    _onlineEnabled = ServerService.onlineServicesEnabled && ServerService.baseUrl != null;
+    setState(() => _loading = _onlineEnabled);
+    if (!_onlineEnabled) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
     final status = await ServerService.getSyncStatus();
     if (mounted && status != null) {
       setState(() {
@@ -34,7 +41,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         _lastSyncAt = status['last_sync_at'];
         _loading = false;
       });
-    } else {
+    } else if (mounted) {
       setState(() => _loading = false);
     }
   }
@@ -49,14 +56,23 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _buildStatusCard(),
-                const SizedBox(height: 24),
-                if (_linked) ...[
-                  _buildSyncSection(),
-                  const SizedBox(height: 16),
-                  _buildUnlinkButton(),
-                ] else ...[
-                  _buildLinkOrCreateSection(),
+                if (!_onlineEnabled)
+                  OnlineServicesNotice(
+                    onEnabled: () async {
+                      if (!mounted) return;
+                      setState(() => _loading = true);
+                      await _loadStatus();
+                    },
+                  )
+                else ...[
+                  _buildStatusCard(),
+                  const SizedBox(height: 24),
+                  if (_linked) ...[
+                    _buildSyncSection(),
+                    const SizedBox(height: 16),
+                    _buildUnlinkButton(),
+                  ] else
+                    _buildLinkOrCreateSection(),
                 ],
               ],
             ),
@@ -197,17 +213,21 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     );
   }
 
-  void _showLinkDialog(BuildContext context) {
+  Future<void> _showLinkDialog(BuildContext context) async {
     final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    TransitionRoute<dynamic>? dialogRoute;
     bool loading = false;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) {
+          dialogRoute = ModalRoute.of(context);
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
           title: Text(t.linkYourAccount),
           content: Form(
             key: formKey,
@@ -257,17 +277,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                   password: pwd,
                 );
                 if (!context.mounted) return;
-                Navigator.pop(context);
-                if (res != null && res['message'] != null) {
-                  NotificationService.showFeedback(t.success, res['message']);
-                  _loadStatus();
-                  ref.read(gameProvider.notifier).checkAccountLinkStatus();
-                  _checkAndShowMergeDialog();
-                } else {
-                  final errorMsg = res?['error'];
-                  final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
-                  NotificationService.showFeedback(t.error, msg);
-                }
+                Navigator.pop(context, res ?? <String, dynamic>{});
               },
               child: loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -276,21 +286,28 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      emailController.dispose();
+      passwordController.dispose();
+    });
   }
 
-  void _showCreateAccountDialog(BuildContext context) {
+  Future<void> _showCreateAccountDialog(BuildContext context) async {
     final t = ref.read(translationsProvider);
     final emailController = TextEditingController();
     final usernameController = TextEditingController();
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    TransitionRoute<dynamic>? dialogRoute;
     bool loading = false;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) {
+          dialogRoute = ModalRoute.of(context);
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
           title: Text(t.createAccount),
           content: SingleChildScrollView(
             child: Form(
@@ -361,17 +378,7 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
                   password: pwd,
                 );
                 if (!context.mounted) return;
-                Navigator.pop(context);
-                if (res != null && res['message'] != null) {
-                  NotificationService.showFeedback(t.success, res['message']);
-                  _loadStatus();
-                  ref.read(gameProvider.notifier).checkAccountLinkStatus();
-                  _checkAndShowMergeDialog();
-                } else {
-                  final errorMsg = res?['error'];
-                  final msg = (errorMsg is Map ? errorMsg['message'] : errorMsg) ?? t.cannotSync;
-                  NotificationService.showFeedback(t.error, msg);
-                }
+                Navigator.pop(context, res ?? <String, dynamic>{});
               },
               child: loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -380,7 +387,11 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      emailController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+    });
   }
 
   Future<void> _syncNow() async {
@@ -500,14 +511,16 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
     return user.level > 1 || user.globalXp > 0 || user.coins > 0;
   }
 
-  void _checkAndShowMergeDialog() {
+  Future<void> _checkAndShowMergeDialog() async {
     final t = ref.read(translationsProvider);
-    if (!_hasLocalData()) return;
-    if (!mounted) return;
-    showDialog(
+    if (!_hasLocalData() || !mounted) return;
+    TransitionRoute<dynamic>? dialogRoute;
+    final mode = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) {
+        dialogRoute = ModalRoute.of(context);
+        return AlertDialog(
         icon: const Icon(Icons.sync_problem, size: 48, color: Colors.orange),
         title: Text(t.localDataDetected),
         content: Text(
@@ -515,32 +528,32 @@ class _AccountLinkScreenState extends ConsumerState<AccountLinkScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'pull');
-              NotificationService.showFeedback(t.synced, t.serverDataApplied);
-            },
+            onPressed: () => Navigator.pop(context, 'pull'),
             child: Text(t.replaceByServer),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'push');
-              NotificationService.showFeedback(t.synced, t.dataSentToServer);
-            },
+            onPressed: () => Navigator.pop(context, 'push'),
             child: Text(t.sendToServer),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(gameProvider.notifier).syncWithServer(mode: 'merge');
-              NotificationService.showFeedback(t.synced, t.dataMerged);
-            },
+            onPressed: () => Navigator.pop(context, 'merge'),
             child: Text(t.mergeSum),
           ),
         ],
-      ),
+        );
+      },
     );
+    await dialogRoute?.completed;
+    if (!mounted || mode == null) return;
+
+    await ref.read(gameProvider.notifier).syncWithServer(mode: mode);
+    if (!mounted) return;
+    final message = switch (mode) {
+      'pull' => t.serverDataApplied,
+      'push' => t.dataSentToServer,
+      _ => t.dataMerged,
+    };
+    NotificationService.showFeedback(t.synced, message);
   }
 
   Future<void> _unlinkAccount() async {

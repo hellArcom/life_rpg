@@ -1,12 +1,14 @@
 # Life RPG ProGuard Rules
 
 # Flutter/Dart
+# Do NOT blanket-keep io.flutter.embedding.android/engine: that retains
+# FlutterPlayStoreSplitApplication and PlayStoreDeferredComponentManager,
+# whose Google Play Core references make the F-Droid scanner fail.
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.** { *; }
 -keep class io.flutter.util.** { *; }
 -keep class io.flutter.view.** { *; }
--keep class io.flutter.embedding.android.** { *; }
--keep class io.flutter.embedding.engine.** { *; }
+-dontwarn com.google.android.play.**
 
 # PointyCastle (cryptography)
 -keep class org.bouncycastle.** { *; }
@@ -19,15 +21,13 @@
 
 # Hive (local database)
 -keep class com.google.android.gms.** { *; }
--keep class com.google.firebase.** { *; }
 
 # Riverpod (state management)
 -keep class com.remi.** { *; }
 -keep class com.remi.flutter_riverpod.** { *; }
 
-# flutter_secure_storage
--keep class com.tekartik.sqflite.** { *; }
--keep class net.sqlcipher.** { *; }
+# flutter_secure_storage uses Android KeyStore cipher implementations.
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
 
 # json_serializable / freezed
 -keep class **.*$*Json { *; }
@@ -48,11 +48,6 @@
     native <methods>;
 }
 
-# Keep classes with native methods
--keep class * {
-    *** nativeMethods;
-}
-
 # Don't warn about missing classes
 -dontwarn org.bouncycastle.**
 -dontwarn com.github.luben.**
@@ -70,9 +65,6 @@
 # Socket.IO
 -keep class io.socket.** { *; }
 
-# awesome_notifications
--keep class com.awesome.** { *; }
-
 # WorkManager
 -keep class androidx.work.** { *; }
 
@@ -83,12 +75,3 @@
 
 # Suppress warnings for missing classes
 -dontwarn javax.lang.model.element.Modifier
-
-# Remove Google Play Core classes (F-Droid non-free policy)
-# Target specific classes that F-Droid flags
--dontwarn com.google.android.play.core.tasks.**
--dontwarn com.google.android.play.core.splitcompat.**
--dontwarn com.google.android.play.core.splitinstall.**
--assumenosideeffects class com.google.android.play.core.tasks.** { *; }
--assumenosideeffects class com.google.android.play.core.splitcompat.** { *; }
--assumenosideeffects class com.google.android.play.core.splitinstall.** { *; }

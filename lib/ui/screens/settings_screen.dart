@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../core/translations.dart';
+import '../../services/server_service.dart';
+import '../../services/chat_service.dart';
+import '../widgets/online_services_notice.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -23,6 +26,44 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _buildSectionHeader(t.appearance),
+          SwitchListTile(
+            title: Text(t.onlineServices),
+            subtitle: Text(t.onlineServicesDesc),
+            secondary: const Icon(Icons.cloud_outlined),
+            value: settings.onlineServicesEnabled,
+            onChanged: (enabled) async {
+              if (!enabled) {
+                await settingsNotifier.setOnlineServicesEnabled(false);
+                await ServerService.resetServerRegistration();
+                gameNotifier.setOnlineServicesDisabled();
+                ChatService.disconnect();
+                ref.invalidate(serverStatusProvider);
+                return;
+              }
+              await enableOnlineServices(context, ref);
+            },
+          ),
+          ListTile(
+            title: Text(t.serverUrl),
+            subtitle: Text(ServerService.isValidServerUrl(settings.serverUrl)
+                ? settings.serverUrl
+                : t.serverUrlDesc),
+            leading: const Icon(Icons.dns_outlined),
+            onTap: () async {
+              final url = await _showServerUrlDialog(context, settings.serverUrl, t);
+              if (url != null) {
+                if (url != settings.serverUrl && settings.onlineServicesEnabled) {
+                  await settingsNotifier.setOnlineServicesEnabled(false);
+                  await ServerService.resetServerRegistration();
+                  gameNotifier.setOnlineServicesDisabled();
+                  ChatService.disconnect();
+                }
+                await settingsNotifier.setServerUrl(url);
+                ref.invalidate(serverStatusProvider);
+              }
+            },
+          ),
+          const Divider(),
           ListTile(
             title: Text(t.theme),
             subtitle: Text(_themeModeToString(settings.themeMode, t)),
@@ -109,6 +150,52 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<String?> _showServerUrlDialog(
+    BuildContext context,
+    String currentUrl,
+    Translations t,
+  ) async {
+    final controller = TextEditingController(text: currentUrl);
+    final formKey = GlobalKey<FormState>();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.serverUrl),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: 'https://',
+              helperText: t.serverUrlDesc,
+            ),
+            validator: (value) => value != null && ServerService.isValidServerUrl(value)
+                ? null
+                : t.invalidServerUrl,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogContext, controller.text.trim());
+              }
+            },
+            child: Text(t.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Widget _buildSectionHeader(String title) {
