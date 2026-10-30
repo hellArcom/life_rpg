@@ -5,7 +5,7 @@
 Life RPG à étais fait en flutter et est compatible sur android, linux et windows les autre sytème peuvent avoir des problème de compatibiliter
 
 ## Téléchargement
-    https://github.com/hellArcom/Life-RPG-release
+    https://github.com/hellArcom/life_rpg/releases/
 
 =================================
 
