@@ -108,11 +108,10 @@ configurations {
     }
 }
 
-// F-Droid compatibility: Strip Google Play Core classes from DEX
-// These classes are embedded in the Flutter engine and violate F-Droid's non-free policy
+// F-Droid compatibility: Strip Google Play Core classes from DEX and re-sign APK
 tasks.register("stripPlayCoreClasses") {
     group = "build"
-    description = "Removes com.google.android.play.core classes from release APK DEX files"
+    description = "Removes com.google.android.play.core classes from release APK DEX files and re-signs"
     doLast {
         val outputDir = layout.buildDirectory.dir("outputs/flutter-apk").get().asFile
         val apkFiles = outputDir.listFiles { it.name.endsWith("-release.apk") }
@@ -122,24 +121,15 @@ tasks.register("stripPlayCoreClasses") {
             return@doLast
         }
         
-// Use pre-bundled baksmali/smali JARs (in android/app/fdroid-tools/)
-// Download standalone JARs from Maven Central:
-// https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar
-// https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar
-// Place baksmali.jar and smali.jar in android/app/fdroid-tools/
         val toolsDir = file("${project.rootDir}/../android/app/fdroid-tools")
         val baksmaliJar = file("${toolsDir}/baksmali.jar")
         val smaliJar = file("${toolsDir}/smali.jar")
         
         if (!baksmaliJar.exists() || !smaliJar.exists()) {
             logger.warn("baksmali/smali JARs not found in ${toolsDir}. Skipping Play Core stripping.")
-            logger.warn("Download standalone JARs from Maven Central:")
-            logger.warn("  https://repo1.maven.org/maven2/org/smali/baksmali/2.5.2/baksmali-2.5.2.jar")
-            logger.warn("  https://repo1.maven.org/maven2/org/smali/smali/2.5.2/smali-2.5.2.jar")
             return@doLast
         }
         
-        // Classes to remove (F-Droid flagged classes)
         val playCoreClasses = listOf(
             "com/google/android/play/core/tasks/OnSuccessListener",
             "com/google/android/play/core/tasks/OnFailureListener",
@@ -150,7 +140,7 @@ tasks.register("stripPlayCoreClasses") {
         )
         
         apkFiles.forEach { apkFile ->
-            logger.lifecycle("Stripping Play Core classes from ${apkFile.name}")
+            logger.lifecycle("Processing ${apkFile.name}")
             
             val tempDir = layout.buildDirectory.dir("tmp/strip/${apkFile.name}").get().asFile
             tempDir.mkdirs()
@@ -179,8 +169,6 @@ tasks.register("stripPlayCoreClasses") {
                 // Process each DEX file
                 val dexFiles = project.fileTree(mapOf("dir" to tempDir, "include" to "classes*.dex")).files
                 dexFiles.forEach { dexFile ->
-                    logger.lifecycle("Processing ${dexFile.name}")
-                    
                     val outDir = file("${tempDir}/out/${dexFile.name}")
                     outDir.mkdirs()
                     
@@ -190,16 +178,14 @@ tasks.register("stripPlayCoreClasses") {
                     val baksmaliProc = ProcessBuilder(baksmaliCmd).start()
                     baksmaliProc.waitFor()
                     if (baksmaliProc.exitValue() != 0) {
-                        val error = baksmaliProc.errorStream.bufferedReader().readText()
-                        logger.error("baksmali failed: $error")
-                        return@doLast
+                        logger.error("baksmali failed")
+                        return@forEach
                     }
                     
                     // Remove Play Core class directories
                     playCoreClasses.forEach { className ->
                         val classDir = file("${outDir}/${className}")
                         if (classDir.exists()) {
-                            logger.lifecycle("Removing ${className}")
                             classDir.deleteRecursively()
                         }
                     }
@@ -210,18 +196,19 @@ tasks.register("stripPlayCoreClasses") {
                     val smaliProc = ProcessBuilder(smaliCmd).start()
                     smaliProc.waitFor()
                     if (smaliProc.exitValue() != 0) {
-                        val error = smaliProc.errorStream.bufferedReader().readText()
-                        logger.error("smali failed: $error")
-                        return@doLast
+                        logger.error("smali failed")
+                        return@forEach
                     }
                     
-                    // Replace original DEX
                     val newDex = file("${tempDir}/${dexFile.name}.new/classes.dex")
                     if (newDex.exists()) {
                         newDex.renameTo(dexFile)
                     }
                 }
                 
+                // Supprimer l'ancien dossier META-INF (signature invalide après modification des DEX)
+                file("${tempDir}/META-INF").deleteRecursively()
+
                 // Repackage APK
                 val newApk = file("${outputDir}/${apkFile.name}.stripped")
                 val zipOut = ZipOutputStream(newApk.outputStream())
@@ -235,9 +222,35 @@ tasks.register("stripPlayCoreClasses") {
                 }
                 zipOut.close()
                 
-                // Replace original APK
                 newApk.renameTo(apkFile)
-                logger.lifecycle("Successfully stripped ${apkFile.name}")
+                
+                // Re-signer l'APK avec apksigner
+                val storeFileProp = signingProps.getProperty("storeFile")
+                val storePasswordProp = signingProps.getProperty("storePassword")
+                val keyAliasProp = signingProps.getProperty("keyAlias")
+                val keyPasswordProp = signingProps.getProperty("keyPassword") ?: storePasswordProp
+                
+                if (keystoreFile != null && keystoreFile.exists() && storePasswordProp != null && keyAliasProp != null) {
+                    logger.lifecycle("Re-signing stripped APK with apksigner...")
+                    val signCmd = listOf(
+                        "apksigner", "sign",
+                        "--ks", keystoreFile.absolutePath,
+                        "--ks-key-alias", keyAliasProp,
+                        "--ks-pass", "pass:$storePasswordProp",
+                        "--key-pass", "pass:$keyPasswordProp",
+                        apkFile.absolutePath
+                    )
+                    val signProc = ProcessBuilder(signCmd).redirectErrorStream(true).start()
+                    val signOutput = signProc.inputStream.bufferedReader().readText()
+                    signProc.waitFor()
+                    if (signProc.exitValue() != 0) {
+                        logger.error("apksigner failed: $signOutput")
+                        return@forEach
+                    }
+                    logger.lifecycle("Successfully re-signed ${apkFile.name}")
+                } else {
+                    logger.warn("Keystore properties missing. APK remains unsigned!")
+                }
                 
             } finally {
                 tempDir.deleteRecursively()
