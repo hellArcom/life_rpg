@@ -37,6 +37,10 @@ L'objectif de Life RPG est de rendre la progression personnelle plus motivante, 
 Fini les listes de tâches sans âme.
 Place à l'aventure.
 
+# Consommation des ressources sytème 
+- Environ 195 Mo de ram
+- En Moyenne 15% d'utilisation sur processeur MediaTeK Dimensity 6080 
+
 ## 🔗 Liens
 
 🌐 Site officiel : [Life RPG](https://liferpg.dpdns.org/)
